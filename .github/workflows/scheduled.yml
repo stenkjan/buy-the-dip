@@ -1,0 +1,50 @@
+name: scheduled-signal-check
+
+on:
+  schedule:
+    - cron: "0 6,18 * * *"   # 06:00 & 18:00 UTC — aligns with 12H rhythm
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-signal-check
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install -e .
+
+      - name: Restore idempotency state
+        uses: actions/cache@v5
+        with:
+          path: state/
+          key: alerts-state-${{ github.run_id }}
+          restore-keys: |
+            alerts-state-
+
+      - name: Run signal check
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DATA_API_KEY: ${{ secrets.DATA_API_KEY }}
+        run: python -m cli.main --mode scheduled
+
+      - name: Upload alert state
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: alerts-state
+          path: state/
+          if-no-files-found: ignore
+          retention-days: 30
