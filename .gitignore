@@ -22,6 +22,7 @@ htmlcov/
 node_modules/
 apps/web/dist/
 apps/web/.vite/
+apps/web/*.tsbuildinfo
 *.log
 
 # Environment & secrets — NEVER commit
