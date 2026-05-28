@@ -53,6 +53,17 @@ python -m cli.backtest --asset ^NDX --start 2000-01-01
 python -m cli.backtest --asset ^GSPC --strict   # strict thresholds only
 ```
 
+### Indicator validation (TradingView spot-check)
+
+Pre-flight before trusting backtest output — see [`docs/validation.md`](docs/validation.md).
+Fill in the expected RSI/EMA values from TradingView for a handful of historic
+dates in `fixtures/tradingview.csv`, then:
+
+```bash
+python -m cli.validate_tv
+# RSI within ±0.5 absolute, EMA within ±1% — exits non-zero on mismatch.
+```
+
 ### API
 
 ```bash

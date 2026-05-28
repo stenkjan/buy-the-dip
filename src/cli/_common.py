@@ -7,6 +7,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 from bot_core.data import YFinanceSource
 from bot_core.indicators import ema, resample_ohlc, rsi_wilder
 from bot_core.types import AssetData
@@ -34,7 +36,13 @@ def build_strategy_config(cfg: dict[str, Any]) -> BuyTheDipConfig:
     )
 
 
-def snapshot_asset(symbol: str) -> AssetData | None:
+def snapshot_asset(symbol: str, history_bars: int = 60) -> AssetData | None:
+    """Live snapshot of an asset. Returns None if insufficient daily history.
+
+    `history_bars` is the number of recent daily bars (with EMA columns) attached
+    to AssetData.history, used by strategies that need a lookback window
+    (e.g. buy_the_dip's macro_reclaim detection).
+    """
     src = YFinanceSource()
     daily = src.fetch(symbol, "1d")
     hourly = src.fetch(symbol, "1h")
@@ -44,15 +52,23 @@ def snapshot_asset(symbol: str) -> AssetData | None:
     weekly = resample_ohlc(daily, "1W")
     h12 = resample_ohlc(hourly, "12h") if not hourly.empty else daily
 
+    ema_d = ema(daily["close"], 200)
+    ema_w = ema(weekly["close"], 200).reindex(daily.index, method="ffill")
+    history = pd.DataFrame(
+        {"close": daily["close"], "ema200_daily": ema_d, "ema200_weekly": ema_w},
+        index=daily.index,
+    ).dropna().tail(history_bars)
+
     last = daily.iloc[-1]
     ts = daily.index[-1]
     return AssetData(
         symbol=symbol,
         timestamp=ts.to_pydatetime() if hasattr(ts, "to_pydatetime") else datetime.now(UTC),
         last_close=float(last["close"]),
-        ema200_daily=float(ema(daily["close"], 200).iloc[-1]),
-        ema200_weekly=float(ema(weekly["close"], 200).iloc[-1]),
+        ema200_daily=float(ema_d.iloc[-1]),
+        ema200_weekly=float(ema_w.iloc[-1]),
         rsi_12h=float(rsi_wilder(h12["close"], 14).iloc[-1]),
         rsi_1d=float(rsi_wilder(daily["close"], 14).iloc[-1]),
         rsi_1w=float(rsi_wilder(weekly["close"], 14).iloc[-1]),
+        history=history,
     )

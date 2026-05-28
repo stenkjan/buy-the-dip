@@ -33,6 +33,8 @@ backtest = [
 [project.scripts]
 btd = "cli.main:main"
 btd-backtest = "cli.backtest:main"
+btd-validate-tv = "cli.validate_tv:main"
+btd-snapshot = "cli.snapshot:main"
 
 [tool.vercel]
 # Vercel auto-detects the FastAPI app from this entrypoint when deploying

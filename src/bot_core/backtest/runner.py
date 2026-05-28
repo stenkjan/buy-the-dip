@@ -42,8 +42,12 @@ def run_backtest(
     on_signal: Callable[[Signal], None] | None = None,
 ) -> BacktestResult:
     ind = _compute_indicators(daily, hourly).dropna()
+    # History view consumed by macro_reclaim — column names match AssetData fields
+    history = ind.rename(columns={"ema_d": "ema200_daily", "ema_w": "ema200_weekly"})
     signals: list[Signal] = []
-    for ts, row in ind.iterrows():
+    # Use positional iteration so we can slice history up to *and including* the current
+    # bar without any future leakage.
+    for i, (ts, row) in enumerate(ind.iterrows()):
         data = AssetData(
             symbol=symbol,
             timestamp=ts.to_pydatetime() if hasattr(ts, "to_pydatetime") else ts,
@@ -53,6 +57,7 @@ def run_backtest(
             rsi_12h=float(row["rsi_12h"]),
             rsi_1d=float(row["rsi_1d"]),
             rsi_1w=float(row["rsi_1w"]),
+            history=history.iloc[: i + 1],
         )
         sig = strategy.evaluate(data)
         if sig.triggered:

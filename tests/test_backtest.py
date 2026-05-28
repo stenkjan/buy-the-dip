@@ -65,6 +65,34 @@ def test_summarize_handles_empty_and_populated():
     assert sum(stats["per_stufe"].values()) == stats["total"]
 
 
+def test_look_ahead_safety_mutating_future_bars_does_not_change_past_signals():
+    """Hard regression: editing the tail of the input series must not change any signal
+    whose timestamp falls before the edit window."""
+    daily = _synthetic_daily()
+    base = run_backtest("SYN", daily, get_strategy())
+
+    cut = 300  # mutate the last 300 bars; verify signals before that are pinned
+    mutated = daily.copy()
+    tail = mutated.index[-cut:]
+    mutated.loc[tail, ["open", "high", "low", "close"]] *= 0.5
+
+    after = run_backtest("SYN", mutated, get_strategy())
+    cutoff = daily.index[-cut]
+    # Sanity: the mutation must actually be observable in the input.
+    assert (mutated["close"].iloc[-1]) != daily["close"].iloc[-1]
+
+    base_past = [s for s in base.signals if pd.Timestamp(s.timestamp) < cutoff]
+    after_past = [s for s in after.signals if pd.Timestamp(s.timestamp) < cutoff]
+
+    assert len(base_past) == len(after_past)
+    for a, b in zip(base_past, after_past, strict=True):
+        assert a.timestamp == b.timestamp
+        assert a.stufe == b.stufe
+        assert a.rsi_value == b.rsi_value
+        assert a.rsi_threshold == b.rsi_threshold
+        assert a.price == b.price
+
+
 def test_forward_returns_uses_at_or_after_horizon():
     # Construct a small handcrafted case: one signal, known forward price.
     idx = pd.date_range("2020-01-01", periods=400, freq="1D", tz="UTC")
