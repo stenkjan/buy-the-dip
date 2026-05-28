@@ -37,7 +37,17 @@ jobs:
         id: ruff
         run: |
           set +e
-          ruff check src tests apps --output-format=concise > /tmp/ruff.txt 2>&1
+          {
+            echo "--- pwd / pyproject sha ---"
+            pwd
+            sha256sum pyproject.toml
+            echo "--- pyproject ruff section ---"
+            python -c "import tomllib,sys,json; d=tomllib.load(open('pyproject.toml','rb')); print(json.dumps(d.get('tool',{}).get('ruff',{}), indent=2))"
+            echo "--- ruff --show-settings (isort + target) ---"
+            ruff check src/cli/main.py --show-settings 2>&1 | grep -E "(target_version|known_modules|tomllib|src = )" | head -20
+            echo "--- ruff check output ---"
+            ruff check src tests apps --output-format=concise
+          } > /tmp/ruff.txt 2>&1
           echo "code=$?" >> "$GITHUB_OUTPUT"
           cat /tmp/ruff.txt
       - name: Pytest
