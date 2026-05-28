@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: read
+  contents: write   # needed to push the signals.json snapshot to the `data` branch
 
 concurrency:
   group: scheduled-signal-check
@@ -39,6 +39,40 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           DATA_API_KEY: ${{ secrets.DATA_API_KEY }}
         run: python -m cli.main --mode scheduled
+
+      - name: Generate dashboard snapshot
+        env:
+          DATA_API_KEY: ${{ secrets.DATA_API_KEY }}
+        run: python -m cli.snapshot --output signals.json
+
+      - name: Publish signals.json to `data` branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+          pub=$(mktemp -d)
+          cp signals.json "$pub/payload.json"
+          cd "$pub"
+          REMOTE="https://x-access-token:$GH_TOKEN@github.com/$REPO.git"
+          if git clone --branch data --depth 1 "$REMOTE" repo 2>/dev/null; then
+            cd repo
+          else
+            git clone --depth 1 "$REMOTE" repo
+            cd repo
+            git checkout --orphan data
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          mv ../payload.json signals.json
+          git config user.name "buy-the-dip-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add signals.json
+          if git diff --cached --quiet; then
+            echo "no change to signals.json"
+            exit 0
+          fi
+          git commit -m "data: snapshot ${{ github.run_id }}"
+          git push origin HEAD:data
 
       - name: Upload alert state
         if: always()

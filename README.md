@@ -69,7 +69,19 @@ npm run dev
 # open http://localhost:5173
 ```
 
-The dev server proxies `/api/*` to the FastAPI service on `:8000`.
+By default the dashboard fetches `https://raw.githubusercontent.com/<owner>/<repo>/data/signals.json`,
+the static snapshot produced 2× daily by the scheduled GitHub Action. For local
+dev against the FastAPI server set `VITE_SIGNALS_URL=http://localhost:8000/signals`.
+
+## Architecture: static-JSON dashboard
+
+The scheduled workflow runs `cli.snapshot` after the alert pass and force-pushes
+the resulting `signals.json` to the `data` branch. The deployed dashboard is a
+static Vite build that fetches that JSON directly from GitHub's raw CDN. This
+keeps the React app fully static (deployable to Vercel/Netlify/GH Pages with no
+serverless function) and avoids running pandas + yfinance on every page load.
+The FastAPI server in `apps/api/` stays available for local dev and is the
+forward-compat path to dynamic queries.
 
 ## GitHub Actions
 

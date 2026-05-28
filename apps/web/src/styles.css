@@ -19,6 +19,7 @@ button { background: var(--accent); color: white; border: 0; padding: .5rem 1rem
 button:disabled { opacity: .5; cursor: progress; }
 
 .error { color: var(--bad); }
+.muted { color: var(--muted); font-size: .85rem; margin: .25rem 0 0; }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
 

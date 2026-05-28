@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { fetchSignals, type Signal } from "./api/client";
+import { fetchSignals, type SignalsPayload } from "./api/client";
 import { SignalCard } from "./components/SignalCard";
 
 export function App() {
-  const [signals, setSignals] = useState<Signal[] | null>(null);
+  const [payload, setPayload] = useState<SignalsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -11,7 +11,7 @@ export function App() {
     setLoading(true);
     setError(null);
     try {
-      setSignals(await fetchSignals());
+      setPayload(await fetchSignals());
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -23,6 +23,8 @@ export function App() {
     load();
   }, []);
 
+  const generated = payload ? new Date(payload.generated_at) : null;
+
   return (
     <main>
       <header className="app-header">
@@ -32,8 +34,12 @@ export function App() {
 
       {error && <p className="error">Error: {error}</p>}
 
+      {generated && (
+        <p className="muted">Last updated: {generated.toUTCString()}</p>
+      )}
+
       <section className="grid">
-        {signals?.map((s) => <SignalCard key={s.symbol} signal={s} />)}
+        {payload?.signals.map((s) => <SignalCard key={s.symbol} signal={s} />)}
       </section>
 
       <footer>
