@@ -44,6 +44,15 @@ pytest -q
 python -m cli.main --mode manual --asset both
 ```
 
+### Backtest
+
+```bash
+python -m cli.backtest --asset ^NDX --start 2000-01-01
+# writes backtest/ndx.csv (one row per triggered signal with forward returns
+# at 30/90/180/365 days) and backtest/ndx.summary.json
+python -m cli.backtest --asset ^GSPC --strict   # strict thresholds only
+```
+
 ### API
 
 ```bash

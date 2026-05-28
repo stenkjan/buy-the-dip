@@ -49,3 +49,6 @@ secrets/
 data/cache/
 *.parquet
 *.feather
+
+# Backtest output
+/backtest/
