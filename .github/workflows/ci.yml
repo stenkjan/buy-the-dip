@@ -18,9 +18,16 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-      - run: pip install -e ".[dev]"
-      - run: ruff check src tests apps
-      - run: pytest -q
+      - name: Install
+        run: |
+          pip install -e ".[dev]"
+          echo "--- versions ---"
+          python --version
+          pip show ruff pytest | grep -E "^(Name|Version):"
+      - name: Ruff
+        run: ruff check src tests apps --output-format=concise
+      - name: Pytest
+        run: pytest -v
 
   web:
     runs-on: ubuntu-latest
