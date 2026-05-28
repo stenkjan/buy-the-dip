@@ -12,48 +12,66 @@ permissions:
 jobs:
   python:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           cache: pip
-      - name: Install
+      - name: Install + diagnostics
+        id: install
         run: |
-          pip install -e ".[dev]"
+          set +e
+          pip install -e ".[dev]" 2>&1 | tee /tmp/install.txt
+          install_code=${PIPESTATUS[0]}
           {
-            echo "### Versions"
-            echo '```'
-            python --version
-            pip show ruff pytest | grep -E "^(Name|Version):"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+            echo "py_version=$(python --version 2>&1)"
+            echo "ruff_version=$(ruff --version 2>&1 || echo missing)"
+            echo "pytest_version=$(pytest --version 2>&1 | head -1 || echo missing)"
+          } >> "$GITHUB_OUTPUT"
+          exit $install_code
       - name: Ruff
+        id: ruff
         run: |
           set +e
           ruff check src tests apps --output-format=concise > /tmp/ruff.txt 2>&1
-          code=$?
-          {
-            echo "### Ruff (exit $code)"
-            echo '```'
-            cat /tmp/ruff.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "code=$?" >> "$GITHUB_OUTPUT"
           cat /tmp/ruff.txt
-          exit $code
       - name: Pytest
+        id: pytest
         run: |
           set +e
           pytest -v > /tmp/pytest.txt 2>&1
-          code=$?
-          {
-            echo "### Pytest (exit $code)"
-            echo '```'
-            tail -100 /tmp/pytest.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "code=$?" >> "$GITHUB_OUTPUT"
           cat /tmp/pytest.txt
-          exit $code
+      - name: Post diagnostics to PR
+        if: failure() || steps.ruff.outputs.code != '0' || steps.pytest.outputs.code != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "## CI diagnostics (run ${{ github.run_id }})"
+            echo "- ${{ steps.install.outputs.py_version }}"
+            echo "- ruff: ${{ steps.install.outputs.ruff_version }}"
+            echo "- pytest: ${{ steps.install.outputs.pytest_version }}"
+            echo ""
+            echo "### Ruff (exit ${{ steps.ruff.outputs.code }})"
+            echo '```'
+            head -200 /tmp/ruff.txt 2>/dev/null || echo "(ruff did not run)"
+            echo '```'
+            echo "### Pytest (exit ${{ steps.pytest.outputs.code }})"
+            echo '```'
+            tail -200 /tmp/pytest.txt 2>/dev/null || echo "(pytest did not run)"
+            echo '```'
+          } > /tmp/comment.md
+          gh pr comment "$PR" --repo "${{ github.repository }}" --body-file /tmp/comment.md
+      - name: Fail job if any step failed
+        if: steps.ruff.outputs.code != '0' || steps.pytest.outputs.code != '0'
+        run: exit 1
 
   web:
     runs-on: ubuntu-latest
