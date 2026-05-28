@@ -33,8 +33,10 @@ secrets/
 *.pem
 *.key
 
-# State (idempotency artifacts) — generated at runtime
-state/
+# State (idempotency artifacts) — generated at runtime.
+# Anchor to root (leading slash) so it doesn't shadow src/bot_core/state/,
+# which would cause ruff/isort to misclassify bot_core.state imports.
+/state/
 *.state.json
 
 # Editor
