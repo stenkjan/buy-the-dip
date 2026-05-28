@@ -34,6 +34,13 @@ backtest = [
 btd = "cli.main:main"
 btd-backtest = "cli.backtest:main"
 
+[tool.vercel]
+# Vercel auto-detects the FastAPI app from this entrypoint when deploying
+# the repo root as a Python project. See docs/architecture.md for the
+# split-deployment notes (web should be a separate Vercel project pointed
+# at apps/web).
+entrypoint = "apps.api.main:app"
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
