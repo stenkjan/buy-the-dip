@@ -52,6 +52,11 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 
+[tool.ruff.lint.isort]
+# tomllib is stdlib in Python 3.11+; pin classification so CI doesn't sort
+# it into third-party when target-version detection differs across machines.
+extra-standard-library = ["tomllib"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
