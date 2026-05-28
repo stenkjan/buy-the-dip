@@ -4,6 +4,13 @@ on:
   schedule:
     - cron: "0 6,18 * * *"   # 06:00 & 18:00 UTC — aligns with 12H rhythm
   workflow_dispatch: {}
+  push:
+    branches: [main, claude/festive-edison-i7L7N]
+    paths:
+      - "src/**"
+      - "config/**"
+      - ".github/workflows/scheduled.yml"
+      - "pyproject.toml"
 
 permissions:
   contents: write   # needed to push the signals.json snapshot to the `data` branch
