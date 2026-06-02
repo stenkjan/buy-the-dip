@@ -62,11 +62,18 @@ only difference is *when* the money is deployed. Risk stats (Sharpe, volatility,
 max drawdown) are time-weighted, so periodic contributions don't distort them.
 
 ```bash
+# default source is stooq.com (single host, no API key) — allowlist-friendly
 python -m cli.dca --asset ^NDX --start 2000-01-01 --monthly 1000 --risk-free 0.02
-# no market-data network access / API key? run fully offline from a CSV
+python -m cli.dca --asset ^GSPC --source yfinance   # use Yahoo instead
+# no market-data network access at all? run fully offline from a CSV
 # (needs at least `date,close` columns):
 python -m cli.dca --csv prices.csv --symbol ^NDX --monthly 1000
 ```
+
+In a sandboxed environment (e.g. Claude Code on the web), set **Network
+access → Custom** and add `stooq.com` to the allowed domains for `--source
+stooq`, or the Yahoo hosts (`*.yahoo.com`, `query1.finance.yahoo.com`,
+`query2.finance.yahoo.com`, `fc.yahoo.com`) for `--source yfinance`.
 
 Output is a JSON report with `strategy`, `dca`, and `delta` blocks; each leg
 carries `final_value`, `total_invested`, `profit`, `total_return`, `irr_annual`,

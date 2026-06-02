@@ -19,7 +19,7 @@ from pathlib import Path
 import pandas as pd
 
 from bot_core.backtest import compare_dca, run_backtest
-from bot_core.data import YFinanceSource
+from bot_core.data import StooqSource, YFinanceSource
 from strategies.buy_the_dip import BuyTheDipConfig, get_strategy
 
 
@@ -44,7 +44,13 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         prog="btd-dca", description="Strategy vs dollar-cost-averaging performance + Sharpe"
     )
-    p.add_argument("--asset", help="symbol to fetch via yfinance, e.g. ^NDX, ^GSPC")
+    p.add_argument("--asset", help="symbol to fetch, e.g. ^NDX, ^GSPC")
+    p.add_argument(
+        "--source",
+        choices=["stooq", "yfinance"],
+        default="stooq",
+        help="data provider for --asset (default: stooq — single host, no API key)",
+    )
     p.add_argument("--csv", type=Path, help="local OHLC CSV (date,close[,open,high,low,volume])")
     p.add_argument("--symbol", help="label to use with --csv (defaults to the file stem)")
     p.add_argument("--start", type=_parse_date, default=datetime(2000, 1, 1))
@@ -69,7 +75,8 @@ def main(argv: list[str] | None = None) -> int:
             daily = daily.loc[daily.index <= pd.Timestamp(args.end, tz="UTC")]
     else:
         symbol = args.asset
-        daily = YFinanceSource().fetch(args.asset, "1d", start=args.start, end=args.end)
+        source = StooqSource() if args.source == "stooq" else YFinanceSource()
+        daily = source.fetch(args.asset, "1d", start=args.start, end=args.end)
 
     if daily.empty or len(daily) < 250:
         print(f"error: insufficient daily history for {symbol}", file=sys.stderr)
