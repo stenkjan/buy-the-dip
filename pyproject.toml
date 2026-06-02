@@ -33,6 +33,7 @@ backtest = [
 [project.scripts]
 btd = "cli.main:main"
 btd-backtest = "cli.backtest:main"
+btd-dca = "cli.dca:main"
 btd-validate-tv = "cli.validate_tv:main"
 btd-snapshot = "cli.snapshot:main"
 

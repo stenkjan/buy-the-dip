@@ -53,6 +53,26 @@ python -m cli.backtest --asset ^NDX --start 2000-01-01
 python -m cli.backtest --asset ^GSPC --strict   # strict thresholds only
 ```
 
+### Strategy vs. dollar-cost averaging (+ Sharpe)
+
+Compare the buy-the-dip timing overlay against plain monthly DCA (invest a fixed
+amount on the first trading day of each month). Both accounts receive the
+identical contribution stream, so terminal values are directly comparable — the
+only difference is *when* the money is deployed. Risk stats (Sharpe, volatility,
+max drawdown) are time-weighted, so periodic contributions don't distort them.
+
+```bash
+python -m cli.dca --asset ^NDX --start 2000-01-01 --monthly 1000 --risk-free 0.02
+# no market-data network access / API key? run fully offline from a CSV
+# (needs at least `date,close` columns):
+python -m cli.dca --csv prices.csv --symbol ^NDX --monthly 1000
+```
+
+Output is a JSON report with `strategy`, `dca`, and `delta` blocks; each leg
+carries `final_value`, `total_invested`, `profit`, `total_return`, `irr_annual`,
+`cagr_twr`, `sharpe`, `volatility_annual`, `max_drawdown`, `n_buys`, and
+`ending_cash`.
+
 ### Indicator validation (TradingView spot-check)
 
 Pre-flight before trusting backtest output — see [`docs/validation.md`](docs/validation.md).
