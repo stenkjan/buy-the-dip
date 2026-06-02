@@ -143,6 +143,37 @@ both `mode="paper"` and `mode="live"`. Sizing is a pure helper in
 `bot_core.execution.size_order`. No code path wires the broker into the CLI
 or API yet — that lands in Phase 5.
 
+## Historical data + DCA
+
+`bot_core.data.AlpacaSource` implements the `DataSource` Protocol against the
+Alpaca Market Data API and is the recommended source for monthly / daily
+backtests when you have Alpaca credentials. It auto-maps the Yahoo-style
+index symbols used elsewhere in the repo (`^NDX`, `^GSPC`, `^IXIC`, `^DJI`)
+to the corresponding ETF proxies (`QQQ`, `SPY`, `ONEQ`, `DIA`) via
+`config/alpaca_symbols.toml` — Alpaca only trades equities/ETFs, not indices
+directly, and the ETFs track 1:1 within <0.05% p.a.
+
+```bash
+python -m cli.dca --asset ^NDX  --start 1996-01-01 --monthly 1000 --risk-free 0.02
+python -m cli.dca --asset ^GSPC --start 1996-01-01 --monthly 1000 --risk-free 0.02
+```
+
+Output: `backtest/dca-<asset>.csv` with one row per month
+(`month_close`, `shares_bought_this_month`, `cum_shares`, `cum_invested`,
+`portfolio_value`) plus a `.summary.json` carrying aggregates (total invested,
+final value, money-weighted CAGR via bisected IRR, max drawdown, annualised
+Sharpe, and a lump-sum buy-and-hold benchmark for comparison).
+
+**Free-tier caveat:** Alpaca's free IEX feed returns roughly 2016+ history for
+most ETFs and is delayed ~15 minutes. Algo Trader Plus (currently $99/mo, SIP
+feed) returns inception-to-present. When the request's `start` predates what
+the endpoint can serve, the CLI logs a warning and proceeds with the
+available range — the truncation is also recorded in the summary JSON.
+
+The `dca-backtest` GitHub Actions workflow (`workflow_dispatch`) runs the same
+CLI from CI using `APCA_API_KEY_ID` / `APCA_API_SECRET_KEY` repo secrets and
+uploads the CSV + summary as an artifact.
+
 ## Tech stack
 
 - Python 3.13, pandas, FastAPI, pydantic v2, yfinance, httpx, pytest, ruff

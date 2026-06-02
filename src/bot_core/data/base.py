@@ -6,6 +6,10 @@ from typing import Protocol
 import pandas as pd
 
 
+class DataSourceError(RuntimeError):
+    """Raised by DataSource implementations to wrap provider-side failures."""
+
+
 class DataSource(Protocol):
     """Pluggable OHLCV provider. Implementations: yfinance, polygon, tiingo, csv."""
 

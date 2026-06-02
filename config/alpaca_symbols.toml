@@ -1,0 +1,7 @@
+# Alpaca only trades equities/ETFs, not indices directly. These ETFs track
+# the corresponding index 1:1 minus a small tracking difference (<0.05% p.a.).
+[map]
+"^NDX"  = "QQQ"
+"^GSPC" = "SPY"
+"^IXIC" = "ONEQ"
+"^DJI"  = "DIA"

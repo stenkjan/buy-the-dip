@@ -1,0 +1,91 @@
+name: dca-backtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      asset:
+        description: "Symbol — ^NDX, ^GSPC, or any Alpaca ticker"
+        default: "^NDX"
+        required: true
+      start:
+        description: "Start date (YYYY-MM-DD)"
+        default: "1996-01-01"
+        required: true
+      end:
+        description: "End date (YYYY-MM-DD); empty = today"
+        default: ""
+        required: false
+      monthly:
+        description: "Monthly contribution in USD"
+        default: "1000"
+        required: true
+      risk_free:
+        description: "Annual risk-free rate (decimal, e.g. 0.02 = 2%)"
+        default: "0.02"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -e .
+
+      - name: Run DCA backtest
+        id: dca
+        env:
+          APCA_API_KEY_ID: ${{ secrets.APCA_API_KEY_ID }}
+          APCA_API_SECRET_KEY: ${{ secrets.APCA_API_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          end_arg=""
+          if [ -n "${{ inputs.end }}" ]; then
+            end_arg="--end ${{ inputs.end }}"
+          fi
+          mkdir -p backtest
+          python -m cli.dca \
+            --asset "${{ inputs.asset }}" \
+            --start "${{ inputs.start }}" \
+            $end_arg \
+            --monthly "${{ inputs.monthly }}" \
+            --risk-free "${{ inputs.risk_free }}" \
+            --output-dir backtest \
+            | tee backtest/_stdout.txt
+
+      - name: Publish summary
+        if: always()
+        run: |
+          {
+            echo "## DCA backtest — ${{ inputs.asset }}"
+            echo ""
+            echo "- start: \`${{ inputs.start }}\`"
+            echo "- end: \`${{ inputs.end || 'today' }}\`"
+            echo "- monthly: \`${{ inputs.monthly }}\` USD"
+            echo "- risk-free: \`${{ inputs.risk_free }}\`"
+            echo ""
+            echo '```'
+            if [ -f backtest/_stdout.txt ]; then
+              cat backtest/_stdout.txt
+            else
+              echo "(no output captured)"
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dca-${{ inputs.asset }}
+          path: |
+            backtest/dca-*.csv
+            backtest/dca-*.summary.json
+          retention-days: 90
+          if-no-files-found: warn

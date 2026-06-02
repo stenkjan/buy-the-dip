@@ -91,6 +91,18 @@ that's Phase 5.
 the strategy's tranche range based on an `aggressiveness` parameter and
 returns `(qty, target_value)` for the broker adapter to execute.
 
+## Historical data: AlpacaSource joins YFinanceSource
+
+`bot_core.data.AlpacaSource` is a second implementation of the `DataSource`
+Protocol, sitting alongside `YFinanceSource`. It lazy-imports `alpaca-py`,
+reads `APCA_API_KEY_ID` / `APCA_API_SECRET_KEY` from the environment, maps
+Yahoo-style index symbols to ETF proxies via `config/alpaca_symbols.toml`
+(`^NDX → QQQ`, `^GSPC → SPY`, …) and wraps SDK errors in `DataSourceError`.
+Switching the engine from one source to the other is a one-constructor
+change, since both expose the same `fetch(symbol, interval, start, end) → DataFrame`
+shape with a UTC `DatetimeIndex` and lowercase `open/high/low/close/volume`
+columns. The DCA backtest CLI (`cli.dca`) is the first consumer.
+
 ## Phases
 
 1. Signal/alert bot (this scaffold).
