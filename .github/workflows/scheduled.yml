@@ -81,6 +81,18 @@ jobs:
           git commit -m "data: snapshot ${{ github.run_id }}"
           git push origin HEAD:data
 
+      - name: Apply DB migrations (skipped when no Postgres secret is set)
+        env:
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+        run: |
+          set -e
+          if [ -z "$POSTGRES_URL" ] && [ -z "$POSTGRES_URL_NON_POOLING" ]; then
+            echo "no Postgres secret set — skipping alembic upgrade"
+            exit 0
+          fi
+          python -m alembic upgrade head
+
       - name: Upload alert state
         if: always()
         uses: actions/upload-artifact@v7
