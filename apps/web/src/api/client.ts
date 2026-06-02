@@ -10,11 +10,26 @@ export interface Signal {
   extras: Record<string, unknown>;
 }
 
-const BASE = "/api";
+export interface SignalsPayload {
+  schema_version: number;
+  generated_at: string;
+  signals: Signal[];
+}
 
-export async function fetchSignals(symbols?: string[]): Promise<Signal[]> {
-  const qs = symbols?.length ? "?" + symbols.map((s) => `symbols=${encodeURIComponent(s)}`).join("&") : "";
-  const r = await fetch(`${BASE}/signals${qs}`);
-  if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`);
-  return r.json();
+// Default to the static JSON published by the scheduled GitHub Action to the
+// `data` branch. Override via VITE_SIGNALS_URL for local dev (e.g. point at
+// the FastAPI server at http://localhost:8000/signals).
+const SIGNALS_URL =
+  import.meta.env.VITE_SIGNALS_URL ??
+  "https://raw.githubusercontent.com/stenkjan/buy-the-dip/data/signals.json";
+
+export async function fetchSignals(): Promise<SignalsPayload> {
+  const r = await fetch(SIGNALS_URL, { cache: "no-store" });
+  if (!r.ok) throw new Error(`signals fetch failed: ${r.status} ${r.statusText}`);
+  const body = await r.json();
+  // Accept both the wrapped payload and a bare array (forwards-compat).
+  if (Array.isArray(body)) {
+    return { schema_version: 0, generated_at: new Date().toISOString(), signals: body };
+  }
+  return body as SignalsPayload;
 }

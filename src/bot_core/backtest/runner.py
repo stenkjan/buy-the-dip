@@ -42,8 +42,12 @@ def run_backtest(
     on_signal: Callable[[Signal], None] | None = None,
 ) -> BacktestResult:
     ind = _compute_indicators(daily, hourly).dropna()
+    # History view consumed by macro_reclaim — column names match AssetData fields
+    history = ind.rename(columns={"ema_d": "ema200_daily", "ema_w": "ema200_weekly"})
     signals: list[Signal] = []
-    for ts, row in ind.iterrows():
+    # Use positional iteration so we can slice history up to *and including* the current
+    # bar without any future leakage.
+    for i, (ts, row) in enumerate(ind.iterrows()):
         data = AssetData(
             symbol=symbol,
             timestamp=ts.to_pydatetime() if hasattr(ts, "to_pydatetime") else ts,
@@ -53,6 +57,7 @@ def run_backtest(
             rsi_12h=float(row["rsi_12h"]),
             rsi_1d=float(row["rsi_1d"]),
             rsi_1w=float(row["rsi_1w"]),
+            history=history.iloc[: i + 1],
         )
         sig = strategy.evaluate(data)
         if sig.triggered:
@@ -60,3 +65,67 @@ def run_backtest(
             if on_signal is not None:
                 on_signal(sig)
     return BacktestResult(symbol=symbol, signals=signals, indicators=ind)
+
+
+_FORWARD_DAYS = (30, 90, 180, 365)
+
+
+def forward_returns(
+    signals: list[Signal],
+    indicators: pd.DataFrame,
+    horizons_days: tuple[int, ...] = _FORWARD_DAYS,
+) -> pd.DataFrame:
+    """One row per signal with forward returns at the given calendar-day horizons.
+
+    Returns are computed against the nearest available bar at or after
+    `signal.timestamp + horizon` to avoid look-ahead. A NaN means the horizon
+    extends past the available data.
+    """
+    if not signals:
+        return pd.DataFrame()
+
+    closes = indicators["close"]
+    rows = []
+    for s in signals:
+        ts = pd.Timestamp(s.timestamp)
+        row: dict[str, object] = {
+            "timestamp": ts.isoformat(),
+            "symbol": s.symbol,
+            "stufe": s.stufe,
+            "rsi_value": s.rsi_value,
+            "rsi_threshold": s.rsi_threshold,
+            "price": s.price,
+            "tranche_lo": s.tranche_pct_range[0] if s.tranche_pct_range else None,
+            "tranche_hi": s.tranche_pct_range[1] if s.tranche_pct_range else None,
+        }
+        for h in horizons_days:
+            target = ts + pd.Timedelta(days=h)
+            future = closes.loc[closes.index >= target]
+            row[f"fwd_{h}d"] = float(future.iloc[0] / s.price - 1.0) if len(future) else None
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def summarize(signals_df: pd.DataFrame) -> dict[str, object]:
+    """Aggregate stats from a forward-returns DataFrame produced by `forward_returns`."""
+    if signals_df.empty:
+        return {"total": 0, "per_stufe": {}, "forward_returns": {}}
+
+    per_stufe = signals_df.groupby("stufe").size().to_dict()
+    fwd_cols = [c for c in signals_df.columns if c.startswith("fwd_")]
+    fwd_stats: dict[str, dict[str, float]] = {}
+    for c in fwd_cols:
+        series = signals_df[c].dropna()
+        if series.empty:
+            continue
+        fwd_stats[c] = {
+            "n": int(series.size),
+            "mean": float(series.mean()),
+            "median": float(series.median()),
+            "win_rate": float((series > 0).mean()),
+        }
+    return {
+        "total": len(signals_df),
+        "per_stufe": {int(k): int(v) for k, v in per_stufe.items()},
+        "forward_returns": fwd_stats,
+    }

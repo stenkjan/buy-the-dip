@@ -44,16 +44,23 @@ class BuyTheDipStrategy:
         )
 
     def _macro_reclaim(self, data: AssetData) -> bool:
-        # Heuristic placeholder: needs price/EMA history to detect a Weekly+Daily reclaim
-        # within `macro_reclaim_window_weeks`. Conservatively disabled when history is missing.
+        """True iff price was below EMA200_weekly within the configured lookback window
+        AND has now reclaimed both EMA200_daily and EMA200_weekly. Conservative —
+        disabled when history is missing or columns aren't named as expected.
+        """
         if data.history is None:
             return False
-        window = self.config.macro_reclaim_window_weeks * 5
-        hist = data.history.tail(window)
-        if "close" not in hist or "ema200_daily" not in hist or "ema200_weekly" not in hist:
+        needed = {"close", "ema200_daily", "ema200_weekly"}
+        if not needed.issubset(data.history.columns):
             return False
-        was_below_weekly = (hist["close"] < hist["ema200_weekly"]).any()
         now_above_both = (
             data.last_close > data.ema200_daily and data.last_close > data.ema200_weekly
         )
-        return bool(was_below_weekly and now_above_both)
+        if not now_above_both:
+            return False
+        window_bars = self.config.macro_reclaim_window_weeks * 5
+        hist = data.history.tail(window_bars)
+        if len(hist) < window_bars // 2:
+            return False  # not enough history to reliably detect the reclaim
+        was_below_weekly = (hist["close"] < hist["ema200_weekly"]).any()
+        return bool(was_below_weekly)

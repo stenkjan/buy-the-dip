@@ -1,3 +1,3 @@
-from .runner import BacktestResult, run_backtest
+from .runner import BacktestResult, forward_returns, run_backtest, summarize
 
-__all__ = ["BacktestResult", "run_backtest"]
+__all__ = ["BacktestResult", "forward_returns", "run_backtest", "summarize"]
