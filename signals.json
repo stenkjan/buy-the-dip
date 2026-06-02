@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-01T19:45:24.768963+00:00",
+  "generated_at": "2026-06-02T07:52:41.179327+00:00",
   "signals": [
     {
       "symbol": "^NDX",
@@ -9,7 +9,7 @@
       "stufe": 1,
       "rsi_value": NaN,
       "rsi_threshold": 30.0,
-      "price": 30534.943359375,
+      "price": 30513.859375,
       "tranche_pct_range": [
         10.0,
         20.0
@@ -25,7 +25,7 @@
       "stufe": 1,
       "rsi_value": NaN,
       "rsi_threshold": 30.0,
-      "price": 7607.0498046875,
+      "price": 7599.9599609375,
       "tranche_pct_range": [
         10.0,
         20.0
