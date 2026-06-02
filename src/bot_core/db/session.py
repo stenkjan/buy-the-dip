@@ -10,6 +10,19 @@ from sqlmodel import Session, create_engine
 DEFAULT_SQLITE_URL = "sqlite:///./buythedip.db"
 
 
+def normalize_database_url(url: str) -> str:
+    """Force psycopg v3 as the Postgres driver.
+
+    SQLAlchemy's bare ``postgresql://`` and ``postgres://`` schemes default
+    to ``psycopg2``, but the project ships ``psycopg[binary]`` (v3). Vercel
+    hands out connection strings as ``postgres://`` so we normalize both.
+    """
+    for prefix in ("postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
 def resolve_database_url(*, prefer_non_pooling: bool = False) -> str:
     """Pick the right DB URL for this context.
 
@@ -23,7 +36,7 @@ def resolve_database_url(*, prefer_non_pooling: bool = False) -> str:
         url = os.getenv("POSTGRES_URL_NON_POOLING") or os.getenv("POSTGRES_URL")
     else:
         url = os.getenv("POSTGRES_URL") or os.getenv("POSTGRES_URL_NON_POOLING")
-    return url or DEFAULT_SQLITE_URL
+    return normalize_database_url(url) if url else DEFAULT_SQLITE_URL
 
 
 @lru_cache(maxsize=4)
