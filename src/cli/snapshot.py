@@ -2,14 +2,29 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from strategies.buy_the_dip import get_strategy
 
 from ._common import build_strategy_config, load_config, snapshot_asset
 
 SCHEMA_VERSION = 1
+
+
+def _json_safe(value: Any) -> Any:
+    """Recursively replace non-finite floats (NaN/inf) with None so the payload
+    is valid JSON. Browsers' JSON.parse rejects literal NaN, which would break
+    the web dashboard's fetch."""
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(v) for v in value]
+    return value
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -36,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
         "signals": signals,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2))
+    args.output.write_text(json.dumps(_json_safe(payload), indent=2, allow_nan=False))
     print(f"wrote {args.output} ({len(signals)} signals)")
     return 0
 
