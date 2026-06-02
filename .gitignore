@@ -52,3 +52,7 @@ data/cache/
 
 # Backtest output
 /backtest/
+
+# Local SQLite DB used as the fallback when POSTGRES_URL is unset
+buythedip.db
+buythedip.db-journal

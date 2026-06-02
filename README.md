@@ -110,10 +110,38 @@ This repo is public. All secrets come from environment variables; in CI from
 - `TELEGRAM_TOKEN` — Telegram bot token (optional)
 - `TELEGRAM_CHAT_ID` — Telegram chat to send to (optional)
 - `DATA_API_KEY` — production data provider key (Polygon / Tiingo)
+- `POSTGRES_URL` / `POSTGRES_URL_NON_POOLING` — Vercel Postgres connection
+  strings (optional, used by the DB layer + alembic). Fall back to local SQLite
+  (`buythedip.db`) when unset so local dev and CI keep working.
+- `APCA_API_KEY_ID` / `APCA_API_SECRET_KEY` — Alpaca credentials (paper or
+  live). Required only when instantiating `AlpacaBroker`.
 
 `.env.example` lists every variable. `.gitignore` blocks `.env`, `.env.*`,
 `secrets/`, `*.pem`, `*.key`. If you ever paste a token, rotate it
 immediately — never commit and `git revert`.
+
+## Persistence & broker scaffolding (Phase 4)
+
+The `bot_core.db` package adds SQLModel tables for bots, signals, orders,
+positions, audit log and parameter-search runs, plus a thin functional
+repository in `bot_core.db.repository`. The engine prefers `POSTGRES_URL` for
+app traffic and `POSTGRES_URL_NON_POOLING` for migrations; both are optional —
+without them everything falls back to a local SQLite file.
+
+Schema migrations are managed with Alembic:
+
+```bash
+alembic upgrade head      # apply all migrations
+alembic downgrade -1      # roll back one
+alembic revision -m "msg" # author a new revision
+```
+
+The broker abstraction lives in `bot_core.brokers`: a `Broker` Protocol with
+frozen `Account` / `BrokerPosition` / `BrokerOrder` dataclasses, and an
+`AlpacaBroker` implementation that lazily imports `alpaca-py` and supports
+both `mode="paper"` and `mode="live"`. Sizing is a pure helper in
+`bot_core.execution.size_order`. No code path wires the broker into the CLI
+or API yet — that lands in Phase 5.
 
 ## Tech stack
 
