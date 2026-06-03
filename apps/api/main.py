@@ -12,7 +12,22 @@ from .routers import backtest, bots, control, health, signals, sweep
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    # startup hook (warm caches, validate config). teardown after yield.
+    # On SQLite (local/dev) auto-create the tables so the admin endpoints work
+    # out of the box. On Postgres the schema is owned by Alembic migrations, so
+    # we never create_all there (it would race the `alembic upgrade` step).
+    try:
+        from sqlmodel import SQLModel
+
+        from bot_core.db import models  # noqa: F401 — registers tables
+        from bot_core.db.session import get_engine
+
+        engine = get_engine()
+        if engine.url.get_backend_name() == "sqlite":
+            SQLModel.metadata.create_all(engine)
+    except Exception as exc:  # never block startup on DB issues
+        import logging
+
+        logging.getLogger("buy-the-dip").warning("table bootstrap skipped: %s", exc)
     yield
 
 

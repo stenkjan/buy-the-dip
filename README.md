@@ -124,6 +124,21 @@ signal records. It talks to the API at `VITE_API_BASE_URL` (default
 the server's `API_KEY` env. With no `API_KEY` set server-side the control plane
 stays disabled (503).
 
+### Running the admin API locally
+
+The admin key is whatever you choose — set it as `API_KEY` on the server and
+type the same value into the UI. To test the Bots/Tuning tabs locally:
+
+```bash
+# API: pick any admin key; allow the web dev origin. SQLite tables are created
+# automatically on startup (Postgres uses Alembic migrations instead).
+API_KEY=letmein API_CORS_ORIGINS=http://localhost:5173 \
+  python -m uvicorn apps.api.main:app --port 8000 --reload
+
+# Web (separate terminal): http://localhost:5173 → Bots tab → enter "letmein"
+cd apps/web && npm install && npm run dev
+```
+
 ## Architecture: static-JSON dashboard
 
 The scheduled workflow runs `cli.snapshot` after the alert pass and force-pushes
