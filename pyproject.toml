@@ -46,11 +46,14 @@ btd-refresh = "cli.refresh:main"
 btd-sweep = "cli.sweep:main"
 
 [tool.vercel]
-# Vercel auto-detects the FastAPI app from this entrypoint when deploying
-# the repo root as a Python project. See docs/architecture.md for the
-# split-deployment notes (web should be a separate Vercel project pointed
-# at apps/web).
-entrypoint = "apps.api.main:app"
+# Vercel's native FastAPI builder imports this ASGI app and serves all routes
+# through it (no api/ rewrites needed). We point at the slim serverless
+# entrypoint `api/index.py` rather than `apps.api.main` so the deployed admin
+# API stays control-plane only (health + bots) — it also fixes sys.path for the
+# src-layout `bot_core` package, which isn't pip-installed in the build. See
+# docs/architecture.md for the split-deployment notes (web is a separate Vercel
+# project pointed at apps/web).
+entrypoint = "api.index:app"
 
 [build-system]
 requires = ["setuptools>=68"]

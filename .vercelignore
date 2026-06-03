@@ -1,0 +1,20 @@
+# Slim the serverless API upload. NOTE: this file is shared by BOTH Vercel
+# projects that deploy from the repo root — buy-the-dip-api (root = ".") and
+# buy-the-dip-web (root = "apps/web"). So it must NOT exclude apps/web, or the
+# web project can't find its root directory. Everything below lives outside
+# apps/web, so excluding it is safe for the web build too.
+tests
+backtest
+data
+docs
+migrations
+.github
+node_modules
+.venv
+*.db
+.env*
+*.egg-info
+__pycache__
+.pytest_cache
+.ruff_cache
+.mypy_cache

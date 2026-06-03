@@ -29,9 +29,13 @@ apps/web/*.tsbuildinfo
 .env
 .env.local
 .env.*.local
+.env.vercel
 secrets/
 *.pem
 *.key
+
+# Vercel CLI link/state
+.vercel
 
 # State (idempotency artifacts) — generated at runtime.
 # Anchor to root (leading slash) so it doesn't shadow src/bot_core/state/,
