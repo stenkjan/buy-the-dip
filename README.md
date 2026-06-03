@@ -53,6 +53,21 @@ python -m cli.backtest --asset ^NDX --start 2000-01-01
 python -m cli.backtest --asset ^GSPC --strict   # strict thresholds only
 ```
 
+### Paper trading (opt-in)
+
+```bash
+# Evaluate each enabled bot (DB) with its own thresholds and place paper buys
+# through Alpaca, gated by per-bot risk guards. Dry-run first:
+python -m cli.trade --dry-run
+python -m cli.trade            # places paper orders (needs APCA_* creds)
+```
+
+Live trading is intentionally refused — paper only until the TradingView
+spot-check in [`docs/validation.md`](docs/validation.md) is complete. Orders are
+persisted as `OrderRecord` with an audit-log row; risk guards (max-% per trade,
+cool-down, cash-floor, daily cap, drawdown breaker) come from each bot's
+`config_json.guards`.
+
 ### Indicator validation (TradingView spot-check)
 
 Pre-flight before trusting backtest output — see [`docs/validation.md`](docs/validation.md).

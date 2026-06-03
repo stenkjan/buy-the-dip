@@ -69,13 +69,16 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
 
 ### Broker integration
 
-- Paper-trade end-to-end via `AlpacaBroker`. Sizing comes from
-  `bot_core.execution.size_order` with allocation from the strategy doc
-  table.
-- Persist every `place_order` call as `OrderRecord` with the broker
-  response payload. Schedule a status-refresh job that polls open orders.
-- Risk guards in `bot_core.execution.guards`: max-% per trade, cool-down
-  between buys, cash-floor, daily trade cap, drawdown circuit breaker.
+- **[shipped] Paper-trade end-to-end** via `AlpacaBroker`. `bot_core.execution.execute_signal`
+  runs guards → `size_order` → paper order → `OrderRecord` + audit. The
+  `cli.trade` CLI (and manual `paper-trade.yml`, dry-run by default) evaluates
+  each enabled bot with its own thresholds and places paper buys. **Live mode
+  is refused** until the validation prerequisite (phase 7) is met.
+- **[shipped] Risk guards** in `bot_core.execution.guards`: max-% per trade,
+  cool-down between buys, cash-floor, daily trade cap, drawdown circuit breaker
+  (configurable per bot via `config_json.guards`).
+- **[next]** Schedule a status-refresh job that polls open orders and updates
+  `OrderRecord` / `Position`.
 
 ## Then: 7 — Live trading (~1 week)
 

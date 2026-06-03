@@ -39,6 +39,9 @@ btd = "cli.main:main"
 btd-backtest = "cli.backtest:main"
 btd-validate-tv = "cli.validate_tv:main"
 btd-snapshot = "cli.snapshot:main"
+btd-dca = "cli.dca:main"
+btd-history = "cli.history:main"
+btd-trade = "cli.trade:main"
 
 [tool.vercel]
 # Vercel auto-detects the FastAPI app from this entrypoint when deploying

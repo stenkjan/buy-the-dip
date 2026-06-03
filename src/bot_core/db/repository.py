@@ -102,6 +102,16 @@ def list_positions(session: Session, bot_id: str) -> list[Position]:
     return list(session.exec(stmt).all())
 
 
+def list_orders(session: Session, bot_id: str, *, limit: int = 200) -> list[OrderRecord]:
+    stmt = (
+        select(OrderRecord)
+        .where(OrderRecord.bot_id == bot_id)
+        .order_by(OrderRecord.submitted_at.desc())  # type: ignore[attr-defined]
+        .limit(limit)
+    )
+    return list(session.exec(stmt).all())
+
+
 def update_bot_config(session: Session, bot_id: str, *, config_json: dict[str, Any]) -> Bot:
     bot = session.get(Bot, bot_id)
     if bot is None:
