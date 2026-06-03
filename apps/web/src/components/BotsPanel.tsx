@@ -3,6 +3,89 @@ import { adminApi, AdminApiError, type Bot, type SignalRecord } from "../api/adm
 
 const KEY_STORAGE = "btd_api_key";
 
+// buy_the_dip strategy thresholds, mirroring BuyTheDipConfig defaults. These
+// are stored on the bot's config_json and consumed by the executor when it
+// builds the strategy for that bot.
+const THRESHOLD_FIELDS: { key: string; label: string; step: number; default: number }[] = [
+  { key: "rsi_threshold_stufe1", label: "Stufe 1 (RSI 12H)", step: 0.5, default: 30 },
+  { key: "rsi_threshold_stufe2", label: "Stufe 2 (RSI 1D)", step: 0.5, default: 30 },
+  { key: "rsi_threshold_stufe3", label: "Stufe 3 (RSI 1W)", step: 0.5, default: 30 },
+  { key: "rsi_threshold_stufe1_liberal", label: "Stufe 1 liberal", step: 0.5, default: 35 },
+  { key: "rsi_threshold_stufe2_liberal", label: "Stufe 2 liberal", step: 0.5, default: 30.5 },
+  { key: "rsi_threshold_stufe3_liberal", label: "Stufe 3 liberal", step: 0.5, default: 32 },
+  { key: "macro_reclaim_window_weeks", label: "Macro-reclaim weeks", step: 1, default: 8 },
+];
+
+function BotConfigEditor({
+  bot,
+  apiKey,
+  onSaved,
+}: {
+  bot: Bot;
+  apiKey: string;
+  onSaved: () => void;
+}) {
+  const cfg = bot.config_json ?? {};
+  const initial: Record<string, number> = {};
+  for (const f of THRESHOLD_FIELDS) {
+    initial[f.key] = typeof cfg[f.key] === "number" ? (cfg[f.key] as number) : f.default;
+  }
+  const [values, setValues] = useState<Record<string, number>>(initial);
+  const [liberal, setLiberal] = useState<boolean>(
+    typeof cfg.liberal === "boolean" ? (cfg.liberal as boolean) : true,
+  );
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      // Merge over any unknown keys so we never drop config the UI doesn't model.
+      const config_json = { ...cfg, ...values, liberal };
+      await adminApi.updateBot(apiKey, bot.id, { config_json });
+      onSaved();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="bot-config">
+      <p className="muted">RSI thresholds — a Stufe triggers when its RSI ≤ the value below.</p>
+      <div className="bot-config-grid">
+        {THRESHOLD_FIELDS.map((f) => (
+          <label key={f.key}>
+            {f.label}
+            <input
+              type="number"
+              step={f.step}
+              value={values[f.key]}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, [f.key]: Number(e.target.value) }))
+              }
+            />
+          </label>
+        ))}
+        <label className="bot-config-check">
+          <input
+            type="checkbox"
+            checked={liberal}
+            onChange={(e) => setLiberal(e.target.checked)}
+          />
+          Use liberal thresholds
+        </label>
+      </div>
+      <div className="bot-actions">
+        <button disabled={busy} onClick={save}>Save thresholds</button>
+        <button className="btn-secondary" disabled={busy} onClick={() => { setValues(initial); setLiberal(true); }}>
+          Reset to defaults
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function useApiKey(): [string, (k: string) => void] {
   const [key, setKey] = useState(() => localStorage.getItem(KEY_STORAGE) ?? "");
   const update = (k: string) => {
@@ -25,6 +108,7 @@ function BotRow({
   const [busy, setBusy] = useState(false);
   const [signals, setSignals] = useState<SignalRecord[] | null>(null);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   async function act(fn: () => Promise<unknown>) {
     setBusy(true);
@@ -89,6 +173,9 @@ function BotRow({
         <button className="btn-secondary" disabled={busy} onClick={toggleSignals}>
           {open ? "Hide signals" : "Signals"}
         </button>
+        <button className="btn-secondary" disabled={busy} onClick={() => setEditing((e) => !e)}>
+          {editing ? "Close thresholds" : "Thresholds"}
+        </button>
         <button
           className="btn-danger"
           disabled={busy}
@@ -99,6 +186,14 @@ function BotRow({
           Delete
         </button>
       </div>
+
+      {editing && (
+        <BotConfigEditor
+          bot={bot}
+          apiKey={apiKey}
+          onSaved={() => { setEditing(false); onChanged(); }}
+        />
+      )}
 
       {open && (
         <div className="bot-signals">

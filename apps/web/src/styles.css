@@ -92,6 +92,13 @@ button:disabled { opacity: .5; cursor: progress; }
 .bot-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .9rem; }
 .bot-actions button { padding: .35rem .7rem; font-size: .85rem; }
 
+.bot-config { margin-top: .8rem; border-top: 1px solid #232c39; padding-top: .8rem; }
+.bot-config-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem .8rem; }
+.bot-config-grid label { display: flex; flex-direction: column; gap: .2rem; font-size: .78rem; color: var(--muted); }
+.bot-config-grid input[type="number"] { background: #0e1116; color: var(--fg); border: 1px solid #232c39; border-radius: 6px; padding: .35rem .45rem; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.bot-config-check { flex-direction: row !important; align-items: center; gap: .4rem !important; grid-column: 1 / -1; }
+.bot-config-check input { width: auto; }
+
 .bot-signals { margin-top: .8rem; overflow-x: auto; }
 .bot-signals table { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
 .bot-signals th { text-align: left; color: var(--muted); font-weight: 500; border-bottom: 1px solid #232c39; padding: .25rem .4rem; }
