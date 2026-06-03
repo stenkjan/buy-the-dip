@@ -102,10 +102,12 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
 
 ## Then: 8 — Learning loop (~3-5 days)
 
-- Scheduled job runs `parameter_run` rows for a grid of threshold and EMA
-  variations on the latest history.
-- Web surface: "Threshold 28 instead of 30 would have produced X% more
-  return with Y% less drawdown over the last 5 years."
+- **[shipped]** `bot_core.backtest.run_sweep` + `POST /parameter-sweep`
+  (admin-gated) replay a grid of threshold variations over history and rank
+  them by forward return; `persist=true` writes `ParameterRun` rows. Defaults
+  to a small strict-threshold grid (28/30/32) when no grid is supplied.
+- **[next]** Web surface: "Threshold 28 instead of 30 would have produced X%
+  more return…" and a scheduled job to populate `parameter_run` automatically.
 - Suggestions only — humans accept/reject. The bot never auto-mutates its
   own config.
 

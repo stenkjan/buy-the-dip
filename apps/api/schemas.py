@@ -98,3 +98,17 @@ class EmergencyStopOut(BaseModel):
     bots_paused: int
     orders_cancelled: int
     errors: list[str]
+
+
+class ParameterSweepRequest(BaseModel):
+    asset: str
+    start: str | None = None
+    grid: list[dict[str, Any]] | None = None   # partial config dicts; default grid if omitted
+    persist: bool = False                      # write ParameterRun rows
+    bot_id: str | None = None                  # attach persisted runs to this bot
+
+
+class ParameterSweepOut(BaseModel):
+    asset: str
+    horizon: str
+    results: list[dict[str, Any]]              # ranked best-first
