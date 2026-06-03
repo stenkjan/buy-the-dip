@@ -109,7 +109,9 @@ jobs:
           mv ../payload.json "dca/${safe}.json"
           git config user.name "buy-the-dip-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add "dca/${safe}.json"
+          # Keep Vercel from trying to build this data-only branch.
+          printf '{\n  "$schema": "https://openapi.vercel.sh/vercel.json",\n  "git": { "deploymentEnabled": false }\n}\n' > vercel.json
+          git add "dca/${safe}.json" vercel.json
           if git diff --cached --quiet; then
             echo "no change to dca/${safe}.json"
             exit 0
