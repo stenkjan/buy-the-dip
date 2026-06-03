@@ -106,8 +106,9 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
   (admin-gated) replay a grid of threshold variations over history and rank
   them by forward return; `persist=true` writes `ParameterRun` rows. Defaults
   to a small strict-threshold grid (28/30/32) when no grid is supplied.
-- **[next]** Web surface: "Threshold 28 instead of 30 would have produced X%
-  more return…" and a scheduled job to populate `parameter_run` automatically.
+- **[shipped]** Web "Tuning" tab runs a sweep for an asset and ranks the
+  thresholds by mean forward return (best highlighted).
+- **[next]** A scheduled job to populate `parameter_run` automatically.
 - Suggestions only — humans accept/reject. The bot never auto-mutates its
   own config.
 

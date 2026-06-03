@@ -131,12 +131,30 @@ export interface EmergencyStopResult {
   errors: string[];
 }
 
+export interface SweepEntry {
+  params: Record<string, unknown>;
+  total_signals: number;
+  per_stufe: Record<string, number>;
+  mean_forward_return: number | null;
+  win_rate: number | null;
+  n_forward: number;
+  horizon: string;
+}
+
+export interface SweepResult {
+  asset: string;
+  horizon: string;
+  results: SweepEntry[];
+}
+
 export const adminApi = {
   listBots: (key: string) => request<Bot[]>(key, "/bots"),
   backtest: (key: string, body: BacktestRequest) =>
     request<BacktestResult>(key, "/backtest", { method: "POST", body: JSON.stringify(body) }),
   emergencyStop: (key: string) =>
     request<EmergencyStopResult>(key, "/emergency-stop", { method: "POST" }),
+  parameterSweep: (key: string, body: { asset: string; grid?: Record<string, unknown>[]; persist?: boolean }) =>
+    request<SweepResult>(key, "/parameter-sweep", { method: "POST", body: JSON.stringify(body) }),
   createBot: (key: string, body: BotCreate) =>
     request<Bot>(key, "/bots", { method: "POST", body: JSON.stringify(body) }),
   updateBot: (key: string, id: string, body: BotUpdate) =>
