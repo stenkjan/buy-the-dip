@@ -1,0 +1,35 @@
+name: refresh-orders
+
+# Poll open paper/live orders for enabled bots and sync positions. Needs Alpaca
+# credentials + a Postgres secret holding the bots; a no-op otherwise.
+
+on:
+  schedule:
+    - cron: "*/30 13-21 * * 1-5"   # every 30 min, ~US market hours (UTC), weekdays
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh-orders
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -e .
+
+      - name: Refresh order statuses + positions
+        env:
+          APCA_API_KEY_ID: ${{ secrets.APCA_API_KEY_ID }}
+          APCA_API_SECRET_KEY: ${{ secrets.APCA_API_SECRET_KEY }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+        run: python -m cli.refresh | tee "$GITHUB_STEP_SUMMARY"

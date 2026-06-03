@@ -83,7 +83,8 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
 - **[shipped] Order-status refresh** — `bot_core.execution.refresh_orders` +
   `cli.refresh` poll open orders, update `OrderRecord` (status/fill) with an
   `order_filled` audit, and sync the bot's `Position` from the broker. Runs
-  after a live paper-trade in `paper-trade.yml`.
+  after a paper-trade in `paper-trade.yml` and on its own schedule via
+  `refresh-orders.yml` (every 30 min, weekdays, US market hours).
 
 ## Then: 7 — Live trading (~1 week)
 
@@ -110,7 +111,8 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
   to a small strict-threshold grid (28/30/32) when no grid is supplied.
 - **[shipped]** Web "Tuning" tab runs a sweep for an asset and ranks the
   thresholds by mean forward return (best highlighted).
-- **[next]** A scheduled job to populate `parameter_run` automatically.
+- **[shipped]** `cli.sweep` + weekly `parameter-sweep.yml` persist
+  `ParameterRun` rows automatically (Postgres-backed).
 - Suggestions only — humans accept/reject. The bot never auto-mutates its
   own config.
 
