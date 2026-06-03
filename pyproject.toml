@@ -43,6 +43,7 @@ btd-dca = "cli.dca:main"
 btd-history = "cli.history:main"
 btd-trade = "cli.trade:main"
 btd-refresh = "cli.refresh:main"
+btd-sweep = "cli.sweep:main"
 
 [tool.vercel]
 # Vercel auto-detects the FastAPI app from this entrypoint when deploying

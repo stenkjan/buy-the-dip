@@ -1,0 +1,47 @@
+name: parameter-sweep
+
+# Weekly learning-loop pass: replay a grid of thresholds over history and
+# persist ParameterRun rows. Persistence is only meaningful against Postgres
+# (set POSTGRES_URL); without it the rows go to an ephemeral CI SQLite file.
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"   # Mondays 07:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: parameter-sweep
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -e .
+
+      - name: Apply DB migrations (skipped when no Postgres secret is set)
+        env:
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+        run: |
+          set -e
+          if [ -z "$POSTGRES_URL" ] && [ -z "$POSTGRES_URL_NON_POOLING" ]; then
+            echo "no Postgres secret set — skipping alembic upgrade"
+            exit 0
+          fi
+          python -m alembic upgrade head
+
+      - name: Run parameter sweep
+        env:
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+          DATA_API_KEY: ${{ secrets.DATA_API_KEY }}
+        run: python -m cli.sweep | tee "$GITHUB_STEP_SUMMARY"
