@@ -16,6 +16,7 @@ execution.
 | 5a-prep — Historical data | `AlpacaSource` (StockHistoricalDataClient), `^NDX→QQQ` / `^GSPC→SPY` symbol mapping, `cli.dca` backtest CLI with IRR / Sharpe / max-DD / lump-sum benchmark, manual `dca-backtest.yml` workflow. |
 | **5a — Charts in the dashboard** | `cli.snapshot --history-output` publishes `history.json` (last ~500 daily bars: close, EMA200 1D/1W, RSI 1D/1W, per-bar Stufe + trigger flag) to the `data` branch alongside `signals.json`. Each web signal card renders a price panel (close + both EMA200s, colored Stufe-trigger markers) and an RSI panel (RSI 1D with 30/70 reference lines) via recharts. |
 | **5b — DCA results in the dashboard** | `cli.dca` writes `dca-<asset>.dashboard.json` (KPIs + monthly DCA / lump-sum / invested equity series); the manual `dca-backtest.yml` workflow publishes it to the `data` branch under `dca/<asset>.json`. A "DCA backtest" tab in the web app shows per-asset KPIs (invested, final value, return, money-weighted CAGR, max-DD, Sharpe, vs lump-sum) plus a DCA-vs-lump-sum equity chart, with a free-tier disclaimer when `history_truncation_warning` is present. |
+| **5c — Historical signal timeline** | `cli.history` replays the real per-bar strategy (same engine as `cli.backtest`, incl. macro-reclaim) over ~20 years and records every triggered bar with Stufe, RSI, threshold, price and forward returns (30/90/180/365d). The manual `history-timeline.yml` workflow publishes `history/<asset>.json`. A "Signal timeline" tab plots triggers over price (one marker per trigger, colored by Stufe, per-Stufe filter, tooltip with RSI + forward returns). |
 
 ### Dashboard data files (published to the `data` branch)
 
@@ -24,26 +25,14 @@ execution.
 | `signals.json` | `cli.snapshot --output` | `{schema_version, generated_at, signals[]}` — current Stufe/RSI/trigger per asset. |
 | `history.json` | `cli.snapshot --history-output` | `{schema_version, generated_at, assets:{symbol: bar[]}}` — per-bar `timestamp, close, ema200_daily, ema200_weekly, rsi_1d, rsi_1w, stufe, triggered`. |
 | `dca/<asset>.json` | `cli.dca` + `dca-backtest.yml` | KPI aggregates + `series[]` of `{month, cum_invested, dca_value, lump_value}`. Published per manual workflow run. |
+| `history/<asset>.json` | `cli.history` + `history-timeline.yml` | `{summary, signals[]}` — one record per triggered bar with `timestamp, stufe, rsi_value, rsi_threshold, price, fwd_30d/90d/180d/365d`. Published per manual workflow run. |
 
 The per-bar `triggered` flag in `history.json` is a chart-overlay
 approximation: it tests the daily RSI for Stufe 1/2 and weekly RSI for Stufe 3
 against the live strategy thresholds, ignoring the contextual macro-reclaim
 relaxation. The precise 12H-RSI signal timeline is phase 5c.
 
-## Next: 5c — Historical signal timeline (~1 day, optional)
-
-Goal: show what the strategy would have flagged historically — directly
-relevant to validating the engine before any autonomous execution. Unlike the
-5a chart overlay, this uses the real 12H-RSI evaluation.
-
-- New `cli.history` that runs the backtest over the last ~20 years and
-  records each triggered bar with `timestamp, stufe, rsi, threshold, price,
-  forward_30d, forward_90d, forward_365d`.
-- Push result as `data/history/<asset>.json`.
-- Web timeline view per asset: one marker per trigger, tooltip with all
-  fields above. Filter by Stufe.
-
-## Then: 6 — DB-backed UI and execution (~2-3 weeks)
+## Next: 6 — DB-backed UI and execution (~2-3 weeks)
 
 This is where the dashboard moves from read-only to control plane. The
 foundation (DB schema, broker adapter) is already in place from Phase 4.

@@ -3,19 +3,23 @@ import {
   fetchDca,
   fetchHistory,
   fetchSignals,
+  fetchTimeline,
   type DcaSummary,
   type HistoryPayload,
   type SignalsPayload,
+  type TimelinePayload,
 } from "./api/client";
 import { DcaCard } from "./components/DcaCard";
 import { SignalCard } from "./components/SignalCard";
+import { SignalTimeline } from "./components/SignalTimeline";
 
-type Tab = "signals" | "dca";
+type Tab = "signals" | "dca" | "timeline";
 
 export function App() {
   const [payload, setPayload] = useState<SignalsPayload | null>(null);
   const [history, setHistory] = useState<HistoryPayload | null>(null);
   const [dca, setDca] = useState<DcaSummary[]>([]);
+  const [timelines, setTimelines] = useState<TimelinePayload[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<Tab>("signals");
@@ -28,9 +32,13 @@ export function App() {
       const [signals, hist] = await Promise.all([fetchSignals(), fetchHistory()]);
       setPayload(signals);
       setHistory(hist);
-      // DCA results are opt-in (manual workflow); fetch per asset, keep the hits.
-      const results = await Promise.all(signals.signals.map((s) => fetchDca(s.symbol)));
-      setDca(results.filter((d): d is DcaSummary => d !== null));
+      // DCA + timelines are opt-in (manual workflows); fetch per asset, keep hits.
+      const [dcaResults, timelineResults] = await Promise.all([
+        Promise.all(signals.signals.map((s) => fetchDca(s.symbol))),
+        Promise.all(signals.signals.map((s) => fetchTimeline(s.symbol))),
+      ]);
+      setDca(dcaResults.filter((d): d is DcaSummary => d !== null));
+      setTimelines(timelineResults.filter((t): t is TimelinePayload => t !== null));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -64,6 +72,12 @@ export function App() {
         >
           DCA backtest
         </button>
+        <button
+          className={tab === "timeline" ? "tab is-active" : "tab"}
+          onClick={() => setTab("timeline")}
+        >
+          Signal timeline
+        </button>
       </nav>
 
       {error && <p className="error">Error: {error}</p>}
@@ -88,6 +102,19 @@ export function App() {
             <p className="muted">
               No DCA results published yet. Run the <code>dca-backtest</code> workflow to
               generate them.
+            </p>
+          )}
+        </section>
+      )}
+
+      {tab === "timeline" && (
+        <section className="grid">
+          {timelines.length > 0 ? (
+            timelines.map((t) => <SignalTimeline key={t.asset} timeline={t} />)
+          ) : (
+            <p className="muted">
+              No signal timeline published yet. Run the <code>history-timeline</code> workflow
+              to generate them.
             </p>
           )}
         </section>

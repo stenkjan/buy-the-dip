@@ -1,0 +1,102 @@
+name: history-timeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      assets:
+        description: "Space-separated symbols"
+        default: "^NDX ^GSPC"
+        required: true
+      start:
+        description: "Start date (YYYY-MM-DD)"
+        default: "2005-01-01"
+        required: true
+      strict:
+        description: "Use strict thresholds only"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # publishes the timeline JSON to the `data` branch
+
+concurrency:
+  group: history-timeline
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -e .
+
+      - name: Build timelines
+        env:
+          DATA_API_KEY: ${{ secrets.DATA_API_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p backtest
+          strict_arg=""
+          if [ "${{ inputs.strict }}" = "true" ]; then
+            strict_arg="--strict"
+          fi
+          for asset in ${{ inputs.assets }}; do
+            python -m cli.history \
+              --asset "$asset" \
+              --start "${{ inputs.start }}" \
+              $strict_arg \
+              --output-dir backtest
+          done
+
+      - name: Publish timelines to `data` branch
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+          shopt -s nullglob
+          files=(backtest/*.timeline.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "no timeline payloads — skipping publish"
+            exit 0
+          fi
+          pub=$(mktemp -d)
+          cp backtest/*.timeline.json "$pub/"
+          cd "$pub"
+          REMOTE="https://x-access-token:$GH_TOKEN@github.com/$REPO.git"
+          if git clone --branch data --depth 1 "$REMOTE" repo 2>/dev/null; then
+            cd repo
+          else
+            git clone --depth 1 "$REMOTE" repo
+            cd repo
+            git checkout --orphan data
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          mkdir -p history
+          for f in ../*.timeline.json; do
+            base=$(basename "$f" .timeline.json)
+            mv "$f" "history/${base}.json"
+          done
+          git config user.name "buy-the-dip-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add history/
+          if git diff --cached --quiet; then
+            echo "no change to history payloads"
+            exit 0
+          fi
+          git commit -m "data: history timeline ${{ github.run_id }}"
+          git push origin HEAD:data
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: history-timelines
+          path: backtest/*.timeline.json
+          retention-days: 90
+          if-no-files-found: warn

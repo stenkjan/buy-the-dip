@@ -94,6 +94,11 @@ A **DCA backtest** tab shows per-asset dollar-cost-averaging results (KPIs plus
 a DCA-vs-lump-sum equity chart) read from `dca/<asset>.json`, published by the
 manual `dca-backtest` workflow. Override the base path with `VITE_DCA_BASE_URL`.
 
+A **Signal timeline** tab plots every historic trigger (colored by Stufe, with
+a per-Stufe filter and forward-return tooltips) read from `history/<asset>.json`,
+published by the manual `history-timeline` workflow. Override with
+`VITE_TIMELINE_BASE_URL`.
+
 ## Architecture: static-JSON dashboard
 
 The scheduled workflow runs `cli.snapshot` after the alert pass and force-pushes
