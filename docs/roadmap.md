@@ -87,10 +87,15 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
 
 ## Then: 7 — Live trading (~1 week)
 
-- Per-bot `mode = paper | live` field.
-- Kill-switch endpoint `/emergency-stop` that pauses all bots and cancels
-  open orders.
-- Mandatory audit-log row for every order regardless of fill state.
+- Per-bot `mode = paper | live` field. **[shipped]**
+- **[shipped]** Kill-switch endpoint `POST /emergency-stop` (+ "Stop all" button
+  in the Bots tab) pauses every bot and best-effort cancels open orders, with a
+  mandatory `kill_switch` audit row. Pausing works even when the broker is
+  unreachable.
+- **[shipped]** Audit rows for order submit/fill/block already written by the
+  executor + refresh job.
+- **[gated]** Actual live order placement stays refused in the executor until
+  the validation prerequisite below is met.
 - **Required prerequisite**: TradingView spot-check in
   [`docs/validation.md`](validation.md) completed; backtest hit-rate
   against historical crashes within ±0.5 RSI of TradingView numbers.

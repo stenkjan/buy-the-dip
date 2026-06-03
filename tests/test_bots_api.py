@@ -84,6 +84,21 @@ def test_bot_crud_flow(engine, monkeypatch):
     assert client.get("/bots", headers=H).json() == []
 
 
+def test_emergency_stop_pauses_bots(engine, monkeypatch):
+    monkeypatch.setenv("API_KEY", "secret")
+    client = _client(engine)
+    # an enabled bot with no open orders → broker is never needed
+    bid = client.post("/bots", headers=H, json={"name": "ndx", "asset_symbol": "^NDX"}).json()["id"]
+    client.post(f"/bots/{bid}/toggle", headers=H)  # enable
+    assert client.get(f"/bots/{bid}", headers=H).json()["enabled"] is True
+
+    r = client.post("/emergency-stop", headers=H)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["bots_paused"] == 1 and body["orders_cancelled"] == 0
+    assert client.get(f"/bots/{bid}", headers=H).json()["enabled"] is False
+
+
 def test_create_rejects_invalid_mode(engine, monkeypatch):
     monkeypatch.setenv("API_KEY", "secret")
     client = _client(engine)

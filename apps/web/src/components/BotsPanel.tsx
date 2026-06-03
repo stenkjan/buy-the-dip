@@ -350,6 +350,20 @@ export function BotsPanel() {
     load();
   }, [load]);
 
+  async function emergencyStop() {
+    if (!confirm("Pause ALL bots and cancel their open orders?")) return;
+    try {
+      const r = await adminApi.emergencyStop(apiKey);
+      const errs = r.errors.length ? `\n\nErrors:\n- ${r.errors.join("\n- ")}` : "";
+      alert(`Paused ${r.bots_paused} bot(s), cancelled ${r.orders_cancelled} order(s).${errs}`);
+      load();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  const hasBots = (bots?.length ?? 0) > 0;
+
   return (
     <section>
       <div className="bot-auth">
@@ -366,6 +380,11 @@ export function BotsPanel() {
         {apiKey && (
           <button className="btn-secondary" onClick={() => { setKeyInput(""); setApiKey(""); }}>
             Forget
+          </button>
+        )}
+        {apiKey && hasBots && (
+          <button className="btn-danger" onClick={emergencyStop} title="Pause all bots and cancel open orders">
+            ■ Stop all
           </button>
         )}
       </div>

@@ -125,10 +125,18 @@ export interface BacktestRequest {
   config?: Record<string, unknown>;
 }
 
+export interface EmergencyStopResult {
+  bots_paused: number;
+  orders_cancelled: number;
+  errors: string[];
+}
+
 export const adminApi = {
   listBots: (key: string) => request<Bot[]>(key, "/bots"),
   backtest: (key: string, body: BacktestRequest) =>
     request<BacktestResult>(key, "/backtest", { method: "POST", body: JSON.stringify(body) }),
+  emergencyStop: (key: string) =>
+    request<EmergencyStopResult>(key, "/emergency-stop", { method: "POST" }),
   createBot: (key: string, body: BotCreate) =>
     request<Bot>(key, "/bots", { method: "POST", body: JSON.stringify(body) }),
   updateBot: (key: string, id: string, body: BotUpdate) =>

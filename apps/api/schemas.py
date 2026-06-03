@@ -92,3 +92,9 @@ class BacktestOut(BaseModel):
     liberal: bool
     summary: dict[str, Any]
     signals: list[dict[str, Any]]
+
+
+class EmergencyStopOut(BaseModel):
+    bots_paused: int
+    orders_cancelled: int
+    errors: list[str]
