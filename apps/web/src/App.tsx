@@ -12,8 +12,15 @@ import {
 import { DcaCard } from "./components/DcaCard";
 import { SignalCard } from "./components/SignalCard";
 import { SignalTimeline } from "./components/SignalTimeline";
+import { relativeTime } from "./format";
 
 type Tab = "signals" | "dca" | "timeline";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "signals", label: "Signals" },
+  { id: "dca", label: "DCA backtest" },
+  { id: "timeline", label: "Signal timeline" },
+];
 
 export function App() {
   const [payload, setPayload] = useState<SignalsPayload | null>(null);
@@ -51,50 +58,69 @@ export function App() {
   }, []);
 
   const generated = payload ? new Date(payload.generated_at) : null;
+  const signals = payload?.signals ?? [];
+  const triggeredCount = signals.filter((s) => s.triggered).length;
+  const initialLoading = loading && !payload;
 
   return (
     <main>
       <header className="app-header">
-        <h1>Buy-the-Dip Signals</h1>
-        <button onClick={load} disabled={loading}>{loading ? "Loading…" : "Refresh"}</button>
+        <div>
+          <h1>Buy-the-Dip Signals</h1>
+          <p className="tagline">RSI/EMA dip signals for NDX &amp; SPX — read-only, not advice.</p>
+        </div>
+        <button onClick={load} disabled={loading}>
+          {loading ? "Loading…" : "Refresh"}
+        </button>
       </header>
 
-      <nav className="tabs">
-        <button
-          className={tab === "signals" ? "tab is-active" : "tab"}
-          onClick={() => setTab("signals")}
-        >
-          Signals
-        </button>
-        <button
-          className={tab === "dca" ? "tab is-active" : "tab"}
-          onClick={() => setTab("dca")}
-        >
-          DCA backtest
-        </button>
-        <button
-          className={tab === "timeline" ? "tab is-active" : "tab"}
-          onClick={() => setTab("timeline")}
-        >
-          Signal timeline
-        </button>
+      <nav className="tabs" role="tablist" aria-label="Dashboard views">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={tab === t.id}
+            className={tab === t.id ? "tab is-active" : "tab"}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
       </nav>
 
-      {error && <p className="error">Error: {error}</p>}
+      {error && <p className="error" role="alert">Error: {error}</p>}
 
       {generated && (
-        <p className="muted">Last updated: {generated.toUTCString()}</p>
+        <p className="status-line">
+          {tab === "signals" && signals.length > 0 && (
+            <span className={triggeredCount > 0 ? "pill pill--on" : "pill"}>
+              {triggeredCount > 0
+                ? `${triggeredCount} of ${signals.length} triggered`
+                : "no active triggers"}
+            </span>
+          )}
+          <span className="muted" title={generated.toUTCString()}>
+            updated {relativeTime(generated)}
+          </span>
+        </p>
       )}
 
-      {tab === "signals" && (
+      {initialLoading && (
+        <section className="grid" aria-busy="true">
+          <div className="card skeleton" />
+          <div className="card skeleton" />
+        </section>
+      )}
+
+      {!initialLoading && tab === "signals" && (
         <section className="grid">
-          {payload?.signals.map((s) => (
+          {signals.map((s) => (
             <SignalCard key={s.symbol} signal={s} history={history?.assets[s.symbol]} />
           ))}
         </section>
       )}
 
-      {tab === "dca" && (
+      {!initialLoading && tab === "dca" && (
         <section className="grid">
           {dca.length > 0 ? (
             dca.map((d) => <DcaCard key={d.asset} dca={d} />)
@@ -107,7 +133,7 @@ export function App() {
         </section>
       )}
 
-      {tab === "timeline" && (
+      {!initialLoading && tab === "timeline" && (
         <section className="grid">
           {timelines.length > 0 ? (
             timelines.map((t) => <SignalTimeline key={t.asset} timeline={t} />)
@@ -121,7 +147,7 @@ export function App() {
       )}
 
       <footer>
-        <p>Educational tool. Not investment advice.</p>
+        <p>Educational tool. Not investment advice. No buy/sell recommendations.</p>
       </footer>
     </main>
   );
