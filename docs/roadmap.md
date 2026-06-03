@@ -32,21 +32,24 @@ approximation: it tests the daily RSI for Stufe 1/2 and weekly RSI for Stufe 3
 against the live strategy thresholds, ignoring the contextual macro-reclaim
 relaxation. The precise 12H-RSI signal timeline is phase 5c.
 
-## Next: 6 — DB-backed UI and execution (~2-3 weeks)
+## In progress: 6 — DB-backed UI and execution (~2-3 weeks)
 
 This is where the dashboard moves from read-only to control plane. The
 foundation (DB schema, broker adapter) is already in place from Phase 4.
 
 ### Backend
 
-- Wire `cli.snapshot` and `cli.main` to **also** write `SignalRecord` rows
-  via `bot_core.db.repository.record_signal`. Static JSON keeps being
-  produced for the dashboard.
-- Build the CRUD API on top of the DB:
-  `GET/POST/PATCH /bots`, `POST /bots/{id}/toggle`, `GET /bots/{id}/positions`,
-  `POST /backtest`, `POST /parameter-sweep`.
-- Single-user JWT auth (single `API_KEY` env). Sufficient for solo use
-  until distribution becomes a thing.
+- **[shipped] Bot control-plane API** — `GET/POST/PATCH/DELETE /bots`,
+  `POST /bots/{id}/toggle`, `GET /bots/{id}/signals`, `GET /bots/{id}/positions`.
+  Gated behind a single `API_KEY` env (constant-time `X-API-Key` check); when
+  `API_KEY` is unset the endpoints return 503 so the public deploy stays
+  read-only. CORS now allows the mutating verbs.
+- **[shipped] Signal persistence** — `cli.snapshot --persist` writes a
+  `SignalRecord` per asset via `repository.record_signal`, attaching to a
+  stable bot per asset (`get_or_create_bot`). Opt-in; the static JSON path is
+  untouched and the public scheduled run keeps working without a database.
+- **[next] Threshold/parameter endpoints**: `POST /backtest`,
+  `POST /parameter-sweep`.
 - The API server stays on Vercel serverless for now — cold start is
   acceptable for low-traffic admin use.
 
