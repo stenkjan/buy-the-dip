@@ -47,11 +47,94 @@ def get_bot(session: Session, bot_id: str) -> Bot | None:
     return session.get(Bot, bot_id)
 
 
+def get_or_create_bot(
+    session: Session,
+    *,
+    name: str,
+    strategy_name: str,
+    asset_symbol: str,
+    **kwargs: Any,
+) -> Bot:
+    """Idempotent bot lookup by (strategy_name, asset_symbol).
+
+    Used by the persistence path so repeated snapshot runs attach signals to a
+    single stable bot per asset rather than creating a new one each run.
+    """
+    stmt = select(Bot).where(
+        Bot.strategy_name == strategy_name,
+        Bot.asset_symbol == asset_symbol,
+    )
+    existing = session.exec(stmt).first()
+    if existing is not None:
+        return existing
+    return create_bot(
+        session,
+        name=name,
+        strategy_name=strategy_name,
+        asset_symbol=asset_symbol,
+        **kwargs,
+    )
+
+
+def delete_bot(session: Session, bot_id: str) -> bool:
+    bot = session.get(Bot, bot_id)
+    if bot is None:
+        return False
+    session.delete(bot)
+    session.commit()
+    return True
+
+
+def list_recent_signals(
+    session: Session, bot_id: str, *, limit: int = 100
+) -> list[SignalRecord]:
+    stmt = (
+        select(SignalRecord)
+        .where(SignalRecord.bot_id == bot_id)
+        .order_by(SignalRecord.timestamp.desc())  # type: ignore[attr-defined]
+        .limit(limit)
+    )
+    return list(session.exec(stmt).all())
+
+
+def list_positions(session: Session, bot_id: str) -> list[Position]:
+    stmt = select(Position).where(Position.bot_id == bot_id)
+    return list(session.exec(stmt).all())
+
+
 def update_bot_config(session: Session, bot_id: str, *, config_json: dict[str, Any]) -> Bot:
     bot = session.get(Bot, bot_id)
     if bot is None:
         raise ValueError(f"bot {bot_id} not found")
     bot.config_json = config_json
+    bot.updated_at = datetime.now(UTC)
+    session.add(bot)
+    session.commit()
+    session.refresh(bot)
+    return bot
+
+
+def update_bot(
+    session: Session,
+    bot_id: str,
+    *,
+    name: str | None = None,
+    mode: str | None = None,
+    enabled: bool | None = None,
+    config_json: dict[str, Any] | None = None,
+) -> Bot:
+    """Partial update of a bot. Only non-None fields are applied."""
+    bot = session.get(Bot, bot_id)
+    if bot is None:
+        raise ValueError(f"bot {bot_id} not found")
+    if name is not None:
+        bot.name = name
+    if mode is not None:
+        bot.mode = mode
+    if enabled is not None:
+        bot.enabled = enabled
+    if config_json is not None:
+        bot.config_json = config_json
     bot.updated_at = datetime.now(UTC)
     session.add(bot)
     session.commit()

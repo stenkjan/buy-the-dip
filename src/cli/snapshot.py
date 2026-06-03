@@ -3,10 +3,12 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from bot_core.types import Signal
 from strategies.buy_the_dip import get_strategy
 
 from ._common import build_history, build_strategy_config, load_config, snapshot_asset
@@ -28,6 +30,34 @@ def _json_safe(value: Any) -> Any:
     return value
 
 
+def _persist_signals(evaluated: list[tuple[str, Signal]], strategy_name: str) -> int:
+    """Write a SignalRecord per evaluated asset to the configured database.
+
+    Opt-in (``--persist``): the public scheduled snapshot keeps running without
+    a database. Uses ``get_or_create_bot`` so repeated runs attach to one
+    stable bot per asset. Imports are local so the JSON path never needs the DB
+    stack. Returns the number of records written.
+    """
+    from sqlmodel import Session, SQLModel
+
+    from bot_core.db import models  # noqa: F401 — registers tables
+    from bot_core.db.repository import get_or_create_bot, record_signal
+    from bot_core.db.session import get_engine
+
+    engine = get_engine()
+    # checkfirst=True: a no-op when Alembic already provisioned the schema.
+    SQLModel.metadata.create_all(engine)
+    written = 0
+    with Session(engine) as session:
+        for symbol, sig in evaluated:
+            bot = get_or_create_bot(
+                session, name=symbol, strategy_name=strategy_name, asset_symbol=symbol
+            )
+            record_signal(session, bot.id, sig)
+            written += 1
+    return written
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="btd-snapshot",
@@ -46,6 +76,12 @@ def main(argv: list[str] | None = None) -> int:
         default=500,
         help="number of recent daily bars to include in the history payload",
     )
+    parser.add_argument(
+        "--persist",
+        action="store_true",
+        help="also write a SignalRecord per asset to the database (requires POSTGRES_URL "
+        "or falls back to a local SQLite file)",
+    )
     args = parser.parse_args(argv)
 
     cfg = load_config()
@@ -53,11 +89,14 @@ def main(argv: list[str] | None = None) -> int:
     strategy = get_strategy(strategy_config)
 
     signals: list[dict] = []
+    evaluated: list[tuple[str, Signal]] = []
     for symbol in cfg["data"]["assets"]:
         data = snapshot_asset(symbol)
         if data is None:
             continue
-        signals.append(strategy.evaluate(data).to_dict())
+        sig = strategy.evaluate(data)
+        signals.append(sig.to_dict())
+        evaluated.append((symbol, sig))
 
     now = datetime.now(UTC).isoformat()
     payload = {
@@ -86,6 +125,14 @@ def main(argv: list[str] | None = None) -> int:
         )
         total = sum(len(v) for v in assets.values())
         print(f"wrote {args.history_output} ({len(assets)} assets, {total} bars)")
+
+    if args.persist:
+        try:
+            written = _persist_signals(evaluated, strategy.name)
+            print(f"persisted {written} signal record(s) to the database")
+        except Exception as exc:
+            # Persistence is best-effort: never fail the JSON snapshot over it.
+            print(f"warning: signal persistence failed: {exc}", file=sys.stderr)
 
     return 0
 

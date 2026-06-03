@@ -123,3 +123,30 @@ def test_snapshot_writes_history_payload(tmp_path: Path, monkeypatch: pytest.Mon
     assert payload["assets"]["^NDX"][0]["triggered"] is True
     # signals.json and history.json share the same generation timestamp.
     assert payload["generated_at"] == json.loads(out.read_text())["generated_at"]
+
+
+def test_snapshot_persist_writes_signal_records(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    from sqlalchemy.pool import StaticPool
+    from sqlmodel import Session, SQLModel, create_engine
+
+    from bot_core.db import models  # noqa: F401 — registers tables
+    from bot_core.db import repository as repo
+    from bot_core.db import session as db_session
+
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    SQLModel.metadata.create_all(engine)
+    monkeypatch.setattr(db_session, "get_engine", lambda *a, **k: engine)
+    monkeypatch.setattr(snapshot_cli, "snapshot_asset", lambda symbol: _fake_asset_data(symbol))
+
+    out = tmp_path / "signals.json"
+    code = snapshot_cli.main(["--output", str(out), "--persist"])
+    assert code == 0
+
+    with Session(engine) as s:
+        bots = repo.list_bots(s)
+        assert {b.asset_symbol for b in bots} == {"^NDX", "^GSPC"}
+        # one signal record per asset, attached to its bot
+        for bot in bots:
+            assert len(repo.list_recent_signals(s, bot.id)) == 1
