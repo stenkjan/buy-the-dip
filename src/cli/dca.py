@@ -22,6 +22,19 @@ from bot_core.data import to_alpaca_symbol
 from bot_core.data.base import DataSourceError
 
 _MIN_BARS = 12
+DASHBOARD_SCHEMA_VERSION = 1
+
+
+def _json_safe(value: Any) -> Any:
+    """Replace non-finite floats (NaN/inf) with None so the payload is valid
+    JSON (browsers' JSON.parse rejects literal NaN)."""
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(v) for v in value]
+    return value
 
 
 def _parse_date(s: str) -> datetime:
@@ -141,6 +154,8 @@ def simulate_dca(
     lump_shares = total_invested / first_close
     lump_final = lump_shares * last_close
     lump_return_pct = lump_final / total_invested - 1.0
+    # Equity curve for the lump-sum benchmark (for the dashboard chart).
+    per_month["lump_sum_value"] = lump_shares * close
     years = (close.index[-1] - close.index[0]).days / 365.25
     lump_cagr = ((lump_final / total_invested) ** (1.0 / years) - 1.0) if years > 0 else None
 
@@ -250,6 +265,26 @@ def main(argv: list[str] | None = None) -> int:
     per_month_out.to_csv(csv_path)
     summary_path.write_text(json.dumps(aggregates, indent=2, default=str))
 
+    # Dashboard payload: aggregates (KPIs) + the equity-curve series so the web
+    # app can render DCA vs lump-sum without re-running the backtest.
+    series = [
+        {
+            "month": ts.isoformat(),
+            "cum_invested": float(row["cum_invested"]),
+            "dca_value": float(row["portfolio_value"]),
+            "lump_value": float(row["lump_sum_value"]),
+        }
+        for ts, row in per_month.iterrows()
+    ]
+    dashboard = {
+        "schema_version": DASHBOARD_SCHEMA_VERSION,
+        "generated_at": datetime.now(tz=UTC).isoformat(),
+        **aggregates,
+        "series": series,
+    }
+    dashboard_path = csv_path.with_name(f"{csv_path.stem}.dashboard.json")
+    dashboard_path.write_text(json.dumps(_json_safe(dashboard), indent=2, allow_nan=False))
+
     cagr = aggregates["cagr"]
     sharpe = aggregates["sharpe_annual"]
     lump = aggregates["benchmark_lump_sum"]
@@ -267,7 +302,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  dca vs lump delta {aggregates['dca_vs_lump_sum_delta_pct']:+.1%}")
     if truncation_warning is not None:
         print(f"  note: {truncation_warning}")
-    print(f"wrote {csv_path} and {summary_path}")
+    print(f"wrote {csv_path}, {summary_path} and {dashboard_path}")
     return 0
 
 

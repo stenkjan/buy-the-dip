@@ -9,9 +9,10 @@ from typing import Any
 
 from strategies.buy_the_dip import get_strategy
 
-from ._common import build_strategy_config, load_config, snapshot_asset
+from ._common import build_history, build_strategy_config, load_config, snapshot_asset
 
 SCHEMA_VERSION = 1
+HISTORY_SCHEMA_VERSION = 1
 
 
 def _json_safe(value: Any) -> Any:
@@ -33,10 +34,23 @@ def main(argv: list[str] | None = None) -> int:
         description="Compute current indicator/signal snapshot for all configured assets",
     )
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--history-output",
+        type=Path,
+        default=None,
+        help="also write per-asset daily history (close/EMA200/RSI) for the dashboard charts",
+    )
+    parser.add_argument(
+        "--history-bars",
+        type=int,
+        default=500,
+        help="number of recent daily bars to include in the history payload",
+    )
     args = parser.parse_args(argv)
 
     cfg = load_config()
-    strategy = get_strategy(build_strategy_config(cfg))
+    strategy_config = build_strategy_config(cfg)
+    strategy = get_strategy(strategy_config)
 
     signals: list[dict] = []
     for symbol in cfg["data"]["assets"]:
@@ -45,14 +59,34 @@ def main(argv: list[str] | None = None) -> int:
             continue
         signals.append(strategy.evaluate(data).to_dict())
 
+    now = datetime.now(UTC).isoformat()
     payload = {
         "schema_version": SCHEMA_VERSION,
-        "generated_at": datetime.now(UTC).isoformat(),
+        "generated_at": now,
         "signals": signals,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(_json_safe(payload), indent=2, allow_nan=False))
     print(f"wrote {args.output} ({len(signals)} signals)")
+
+    if args.history_output is not None:
+        assets: dict[str, Any] = {}
+        for symbol in cfg["data"]["assets"]:
+            rows = build_history(symbol, strategy_config, bars=args.history_bars)
+            if rows:
+                assets[symbol] = rows
+        history_payload = {
+            "schema_version": HISTORY_SCHEMA_VERSION,
+            "generated_at": now,
+            "assets": assets,
+        }
+        args.history_output.parent.mkdir(parents=True, exist_ok=True)
+        args.history_output.write_text(
+            json.dumps(_json_safe(history_payload), indent=2, allow_nan=False)
+        )
+        total = sum(len(v) for v in assets.values())
+        print(f"wrote {args.history_output} ({len(assets)} assets, {total} bars)")
+
     return 0
 
 

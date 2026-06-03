@@ -16,12 +16,36 @@ export interface SignalsPayload {
   signals: Signal[];
 }
 
+export interface HistoryBar {
+  timestamp: string;
+  close: number;
+  ema200_daily: number;
+  ema200_weekly: number;
+  rsi_1d: number | null;
+  rsi_1w: number | null;
+  stufe: 1 | 2 | 3;
+  triggered: boolean;
+}
+
+export interface HistoryPayload {
+  schema_version: number;
+  generated_at: string;
+  assets: Record<string, HistoryBar[]>;
+}
+
 // Default to the static JSON published by the scheduled GitHub Action to the
 // `data` branch. Override via VITE_SIGNALS_URL for local dev (e.g. point at
 // the FastAPI server at http://localhost:8000/signals).
 const SIGNALS_URL =
   import.meta.env.VITE_SIGNALS_URL ??
   "https://raw.githubusercontent.com/stenkjan/buy-the-dip/data/signals.json";
+
+// Per-asset daily history (close/EMA200/RSI) for the dashboard charts.
+// Derived from VITE_SIGNALS_URL when it points at the data branch, or set
+// explicitly via VITE_HISTORY_URL.
+const HISTORY_URL =
+  import.meta.env.VITE_HISTORY_URL ??
+  "https://raw.githubusercontent.com/stenkjan/buy-the-dip/data/history.json";
 
 export async function fetchSignals(): Promise<SignalsPayload> {
   const r = await fetch(SIGNALS_URL, { cache: "no-store" });
@@ -32,4 +56,118 @@ export async function fetchSignals(): Promise<SignalsPayload> {
     return { schema_version: 0, generated_at: new Date().toISOString(), signals: body };
   }
   return body as SignalsPayload;
+}
+
+// History is best-effort: the dashboard still renders signal cards if the
+// history payload is missing (e.g. before the first publish). Returns null on
+// any fetch/parse failure rather than throwing.
+export async function fetchHistory(): Promise<HistoryPayload | null> {
+  try {
+    const r = await fetch(HISTORY_URL, { cache: "no-store" });
+    if (!r.ok) return null;
+    return (await r.json()) as HistoryPayload;
+  } catch {
+    return null;
+  }
+}
+
+export interface DcaSeriesPoint {
+  month: string;
+  cum_invested: number;
+  dca_value: number;
+  lump_value: number;
+}
+
+export interface DcaSummary {
+  schema_version: number;
+  generated_at: string;
+  asset: string;
+  alpaca_symbol: string;
+  n_months: number;
+  first_bar: string;
+  last_bar: string;
+  total_invested: number;
+  final_value: number;
+  total_return_pct: number;
+  cagr: number | null;
+  max_drawdown_pct: number;
+  sharpe_annual: number | null;
+  monthly_contribution: number;
+  benchmark_lump_sum: {
+    final_value: number;
+    total_return_pct: number;
+    cagr: number | null;
+  };
+  dca_vs_lump_sum_delta_pct: number;
+  history_truncation_warning?: string;
+  series: DcaSeriesPoint[];
+}
+
+// Per-asset DCA backtest results published by the manual `dca-backtest`
+// workflow to the `data` branch under dca/<safe>.json.
+const DCA_BASE_URL =
+  import.meta.env.VITE_DCA_BASE_URL ??
+  "https://raw.githubusercontent.com/stenkjan/buy-the-dip/data/dca";
+
+// Mirrors the CLI's filename derivation (`^NDX` -> `ndx`).
+export function toSafeSymbol(symbol: string): string {
+  return symbol.replace(/\^/g, "").toLowerCase();
+}
+
+// Best-effort: returns null when no DCA result has been published for the
+// asset yet (the workflow is manual / opt-in).
+export async function fetchDca(symbol: string): Promise<DcaSummary | null> {
+  try {
+    const r = await fetch(`${DCA_BASE_URL}/${toSafeSymbol(symbol)}.json`, { cache: "no-store" });
+    if (!r.ok) return null;
+    return (await r.json()) as DcaSummary;
+  } catch {
+    return null;
+  }
+}
+
+export interface TimelineSignal {
+  timestamp: string;
+  symbol: string;
+  stufe: 1 | 2 | 3;
+  rsi_value: number;
+  rsi_threshold: number;
+  price: number;
+  tranche_lo: number | null;
+  tranche_hi: number | null;
+  fwd_30d: number | null;
+  fwd_90d: number | null;
+  fwd_180d: number | null;
+  fwd_365d: number | null;
+}
+
+export interface TimelinePayload {
+  schema_version: number;
+  generated_at: string;
+  asset: string;
+  liberal: boolean;
+  n_bars: number;
+  summary: {
+    total: number;
+    per_stufe: Record<string, number>;
+    forward_returns: Record<string, { n: number; mean: number; median: number; win_rate: number }>;
+  };
+  signals: TimelineSignal[];
+}
+
+// Per-asset triggered-signal timelines published by the manual
+// `history-timeline` workflow to the `data` branch under history/<safe>.json.
+const TIMELINE_BASE_URL =
+  import.meta.env.VITE_TIMELINE_BASE_URL ??
+  "https://raw.githubusercontent.com/stenkjan/buy-the-dip/data/history";
+
+// Best-effort: null when no timeline has been published for the asset yet.
+export async function fetchTimeline(symbol: string): Promise<TimelinePayload | null> {
+  try {
+    const r = await fetch(`${TIMELINE_BASE_URL}/${toSafeSymbol(symbol)}.json`, { cache: "no-store" });
+    if (!r.ok) return null;
+    return (await r.json()) as TimelinePayload;
+  } catch {
+    return null;
+  }
 }
