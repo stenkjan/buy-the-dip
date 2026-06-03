@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Buy the Dip">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#222a35"/>
+      <stop offset="1" stop-color="#0b0e13"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#9aa6b2"/>
+      <stop offset="0.5" stop-color="#e9eef3"/>
+      <stop offset="1" stop-color="#b7c0cb"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#tile)" stroke="#2b3543" stroke-width="1.5"/>
+  <!-- dip-then-rally arrow -->
+  <path d="M12 40 L24 30 L32 37 L52 17"
+        fill="none" stroke="url(#steel)" stroke-width="5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- arrowhead -->
+  <path d="M42 16 L53 15 L52 26 Z" fill="url(#steel)"/>
+</svg>
