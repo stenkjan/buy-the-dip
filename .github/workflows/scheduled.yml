@@ -96,6 +96,43 @@ jobs:
           git commit -m "data: snapshot ${{ github.run_id }}"
           git push origin HEAD:data
 
+      # Safety net: the publish step above only runs when data generation
+      # succeeds (yfinance is occasionally rate-limited from CI). This step
+      # runs regardless and guarantees the data branch carries a vercel.json
+      # disabling Vercel builds, with no stale buildable source — so a failed
+      # fetch can never leave the data branch in a Vercel-buildable state.
+      - name: Ensure data branch is not Vercel-buildable
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+          work=$(mktemp -d)
+          cd "$work"
+          REMOTE="https://x-access-token:$GH_TOKEN@github.com/$REPO.git"
+          if ! git clone --branch data --depth 1 "$REMOTE" repo 2>/dev/null; then
+            echo "no data branch yet — nothing to guard"
+            exit 0
+          fi
+          cd repo
+          printf '{\n  "$schema": "https://openapi.vercel.sh/vercel.json",\n  "git": { "deploymentEnabled": false }\n}\n' > vercel.json
+          git ls-files | while IFS= read -r f; do
+            case "$f" in
+              signals.json|history.json|vercel.json|dca/*|history/*) ;;
+              *) git rm -q -f "$f" ;;
+            esac
+          done
+          git config user.name "buy-the-dip-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "data branch already guarded"
+            exit 0
+          fi
+          git commit -m "data: disable vercel builds + prune (${{ github.run_id }})"
+          git push origin HEAD:data
+
       - name: Apply DB migrations (skipped when no Postgres secret is set)
         env:
           POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
