@@ -76,4 +76,25 @@ button:disabled { opacity: .5; cursor: progress; }
 .tl-tooltip { background: #141a22; border: 1px solid #232c39; border-radius: 6px; padding: .5rem .6rem; font-size: .8rem; color: var(--fg); }
 .tl-tooltip div { color: var(--muted); margin-top: .15rem; }
 
+/* Bots control plane */
+.btn-secondary { background: #232c39; color: var(--fg); }
+.btn-danger { background: var(--bad); }
+
+.bot-auth { display: flex; align-items: flex-end; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+.bot-auth label, .bot-create label { display: flex; flex-direction: column; gap: .25rem; font-size: .8rem; color: var(--muted); }
+.bot-auth input, .bot-create input, .bot-create select { background: #0e1116; color: var(--fg); border: 1px solid #232c39; border-radius: 6px; padding: .45rem .5rem; font-size: .9rem; min-width: 16rem; }
+.bot-create input, .bot-create select { min-width: 0; }
+
+.bot-create { display: flex; flex-direction: column; gap: .6rem; }
+.bot-create h2 { margin: 0; font-size: 1.1rem; }
+.bot-create button { margin-top: .25rem; }
+
+.bot-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .9rem; }
+.bot-actions button { padding: .35rem .7rem; font-size: .85rem; }
+
+.bot-signals { margin-top: .8rem; overflow-x: auto; }
+.bot-signals table { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.bot-signals th { text-align: left; color: var(--muted); font-weight: 500; border-bottom: 1px solid #232c39; padding: .25rem .4rem; }
+.bot-signals td { padding: .25rem .4rem; border-bottom: 1px solid #1a212b; }
+
 footer { margin-top: 2rem; color: var(--muted); font-size: .85rem; }

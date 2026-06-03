@@ -9,17 +9,19 @@ import {
   type SignalsPayload,
   type TimelinePayload,
 } from "./api/client";
+import { BotsPanel } from "./components/BotsPanel";
 import { DcaCard } from "./components/DcaCard";
 import { SignalCard } from "./components/SignalCard";
 import { SignalTimeline } from "./components/SignalTimeline";
 import { relativeTime } from "./format";
 
-type Tab = "signals" | "dca" | "timeline";
+type Tab = "signals" | "dca" | "timeline" | "bots";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "signals", label: "Signals" },
   { id: "dca", label: "DCA backtest" },
   { id: "timeline", label: "Signal timeline" },
+  { id: "bots", label: "Bots" },
 ];
 
 export function App() {
@@ -145,6 +147,8 @@ export function App() {
           )}
         </section>
       )}
+
+      {!initialLoading && tab === "bots" && <BotsPanel />}
 
       <footer>
         <p>Educational tool. Not investment advice. No buy/sell recommendations.</p>
