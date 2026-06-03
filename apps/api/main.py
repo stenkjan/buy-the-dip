@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import backtest, bots, control, health, signals
+from .routers import backtest, bots, control, health, signals, sweep
 
 
 @asynccontextmanager
@@ -38,6 +38,7 @@ def create_app() -> FastAPI:
     app.include_router(bots.router)
     app.include_router(backtest.router)
     app.include_router(control.router)
+    app.include_router(sweep.router)
     return app
 
 
