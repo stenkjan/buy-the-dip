@@ -59,8 +59,11 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
   and view recent signal records, against the control-plane API. Admin key is
   entered in the UI (stored in localStorage) and sent as `X-API-Key`; base URL
   via `VITE_API_BASE_URL`.
-- **[next] Threshold editor** with a "preview historical signals filtered by
-  this threshold" chart.
+- **[shipped] Threshold editor** in the Bots tab: edits the per-bot
+  `config_json` RSI thresholds (strict + liberal, macro-reclaim window, liberal
+  toggle) via `PATCH /bots/{id}`. The executor builds the strategy from this
+  config. (A historical "preview at this threshold" chart still needs a
+  `POST /backtest` endpoint — deferred.)
 - Live indicator state still served from the static `signals.json` — the
   CRUD API is only used for configuration writes.
 
