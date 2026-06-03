@@ -99,6 +99,11 @@ button:disabled { opacity: .5; cursor: progress; }
 .bot-config-check { flex-direction: row !important; align-items: center; gap: .4rem !important; grid-column: 1 / -1; }
 .bot-config-check input { width: auto; }
 
+.bot-preview { margin-top: .7rem; }
+.bot-preview table { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.bot-preview th { text-align: left; color: var(--muted); font-weight: 500; border-bottom: 1px solid #232c39; padding: .2rem .4rem; }
+.bot-preview td { padding: .2rem .4rem; border-bottom: 1px solid #1a212b; }
+
 .bot-signals { margin-top: .8rem; overflow-x: auto; }
 .bot-signals table { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
 .bot-signals th { text-align: left; color: var(--muted); font-weight: 500; border-bottom: 1px solid #232c39; padding: .25rem .4rem; }

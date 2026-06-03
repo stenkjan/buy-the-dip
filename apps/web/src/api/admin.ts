@@ -99,8 +99,36 @@ async function request<T>(
   return (await r.json()) as T;
 }
 
+export interface BacktestForward {
+  n: number;
+  mean: number;
+  median: number;
+  win_rate: number;
+}
+
+export interface BacktestResult {
+  asset: string;
+  n_bars: number;
+  liberal: boolean;
+  summary: {
+    total: number;
+    per_stufe: Record<string, number>;
+    forward_returns: Record<string, BacktestForward>;
+  };
+  signals: Record<string, unknown>[];
+}
+
+export interface BacktestRequest {
+  asset: string;
+  start?: string;
+  strict?: boolean;
+  config?: Record<string, unknown>;
+}
+
 export const adminApi = {
   listBots: (key: string) => request<Bot[]>(key, "/bots"),
+  backtest: (key: string, body: BacktestRequest) =>
+    request<BacktestResult>(key, "/backtest", { method: "POST", body: JSON.stringify(body) }),
   createBot: (key: string, body: BotCreate) =>
     request<Bot>(key, "/bots", { method: "POST", body: JSON.stringify(body) }),
   updateBot: (key: string, id: string, body: BotUpdate) =>
