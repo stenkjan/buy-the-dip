@@ -99,6 +99,13 @@ a per-Stufe filter and forward-return tooltips) read from `history/<asset>.json`
 published by the manual `history-timeline` workflow. Override with
 `VITE_TIMELINE_BASE_URL`.
 
+A **Bots** tab is the control plane for the FastAPI bot API (`/bots`): list,
+create, enable/pause, switch paper/live and delete bots, and view their recent
+signal records. It talks to the API at `VITE_API_BASE_URL` (default
+`http://localhost:8000`) and needs the admin key entered in the UI — matching
+the server's `API_KEY` env. With no `API_KEY` set server-side the control plane
+stays disabled (503).
+
 ## Architecture: static-JSON dashboard
 
 The scheduled workflow runs `cli.snapshot` after the alert pass and force-pushes

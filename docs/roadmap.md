@@ -55,9 +55,12 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
 
 ### Web
 
-- New "Bots" section: list of configured bots, create/edit/pause from the UI.
-- Threshold editor with a "preview historical signals filtered by this
-  threshold" chart.
+- **[shipped] "Bots" tab**: list/create/enable-pause/switch-mode/delete bots
+  and view recent signal records, against the control-plane API. Admin key is
+  entered in the UI (stored in localStorage) and sent as `X-API-Key`; base URL
+  via `VITE_API_BASE_URL`.
+- **[next] Threshold editor** with a "preview historical signals filtered by
+  this threshold" chart.
 - Live indicator state still served from the static `signals.json` — the
   CRUD API is only used for configuration writes.
 
