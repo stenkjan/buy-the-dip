@@ -94,8 +94,10 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
   unreachable.
 - **[shipped]** Audit rows for order submit/fill/block already written by the
   executor + refresh job.
-- **[gated]** Actual live order placement stays refused in the executor until
-  the validation prerequisite below is met.
+- **[gated]** Live order placement requires an explicit server opt-in
+  `BTD_ALLOW_LIVE=1` **and** a bot's `mode = live`; the executor refuses live
+  otherwise. Unsetting the env instantly reverts to paper-only without touching
+  bot config. See the go-live checklist in [`docs/validation.md`](validation.md).
 - **Required prerequisite**: TradingView spot-check in
   [`docs/validation.md`](validation.md) completed; backtest hit-rate
   against historical crashes within ±0.5 RSI of TradingView numbers.

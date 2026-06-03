@@ -63,11 +63,13 @@ python -m cli.trade            # places paper orders (needs APCA_* creds)
 python -m cli.refresh          # poll open orders, update fills + positions
 ```
 
-Live trading is intentionally refused — paper only until the TradingView
-spot-check in [`docs/validation.md`](docs/validation.md) is complete. Orders are
-persisted as `OrderRecord` with an audit-log row; risk guards (max-% per trade,
-cool-down, cash-floor, daily cap, drawdown breaker) come from each bot's
-`config_json.guards`.
+Live trading is gated: the executor refuses live orders unless `BTD_ALLOW_LIVE=1`
+is set **and** a bot's `mode = live` — set the env only after the go-live
+checklist in [`docs/validation.md`](docs/validation.md). Paper is the default and
+needs neither. Orders are persisted as `OrderRecord` with an audit-log row; risk
+guards (max-% per trade, cool-down, cash-floor, daily cap, drawdown breaker) come
+from each bot's `config_json.guards`. `POST /emergency-stop` (or the "Stop all"
+button) is the kill switch.
 
 ### Indicator validation (TradingView spot-check)
 
