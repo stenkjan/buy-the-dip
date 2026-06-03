@@ -64,8 +64,9 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
 - **[shipped] Threshold editor** in the Bots tab: edits the per-bot
   `config_json` RSI thresholds (strict + liberal, macro-reclaim window, liberal
   toggle) via `PATCH /bots/{id}`. The executor builds the strategy from this
-  config. (A historical "preview at this threshold" chart still needs a
-  `POST /backtest` endpoint — deferred.)
+  config. A **"Preview history"** button replays ~20 years via `POST /backtest`
+  and shows trigger counts per Stufe + forward-return win rates for the entered
+  thresholds.
 - Live indicator state still served from the static `signals.json` — the
   CRUD API is only used for configuration writes.
 

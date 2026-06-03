@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { adminApi, AdminApiError, type Bot, type SignalRecord } from "../api/admin";
+import {
+  adminApi,
+  AdminApiError,
+  type BacktestResult,
+  type Bot,
+  type SignalRecord,
+} from "../api/admin";
 
 const KEY_STORAGE = "btd_api_key";
 
@@ -35,6 +41,8 @@ function BotConfigEditor({
     typeof cfg.liberal === "boolean" ? (cfg.liberal as boolean) : true,
   );
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<BacktestResult | null>(null);
+  const [previewing, setPreviewing] = useState(false);
 
   async function save() {
     setBusy(true);
@@ -47,6 +55,22 @@ function BotConfigEditor({
       alert(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function runPreview() {
+    setPreviewing(true);
+    setPreview(null);
+    try {
+      const result = await adminApi.backtest(apiKey, {
+        asset: bot.asset_symbol,
+        config: { ...values, liberal },
+      });
+      setPreview(result);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPreviewing(false);
     }
   }
 
@@ -78,10 +102,44 @@ function BotConfigEditor({
       </div>
       <div className="bot-actions">
         <button disabled={busy} onClick={save}>Save thresholds</button>
+        <button className="btn-secondary" disabled={previewing} onClick={runPreview}>
+          {previewing ? "Running…" : "Preview history"}
+        </button>
         <button className="btn-secondary" disabled={busy} onClick={() => { setValues(initial); setLiberal(true); }}>
           Reset to defaults
         </button>
       </div>
+
+      {previewing && (
+        <p className="muted">Replaying ~20 years against these thresholds…</p>
+      )}
+      {preview && (
+        <div className="bot-preview">
+          <p className="muted">
+            {preview.summary.total} triggers over {preview.n_bars} bars
+            {" · "}per Stufe:{" "}
+            {[1, 2, 3].map((s) => `S${s} ${preview.summary.per_stufe[String(s)] ?? 0}`).join(" / ")}
+          </p>
+          <table>
+            <thead>
+              <tr><th>horizon</th><th>n</th><th>mean</th><th>win rate</th></tr>
+            </thead>
+            <tbody>
+              {["fwd_30d", "fwd_90d", "fwd_365d"].map((h) => {
+                const f = preview.summary.forward_returns[h];
+                return (
+                  <tr key={h}>
+                    <td>{h.replace("fwd_", "").replace("d", " days")}</td>
+                    <td>{f ? f.n : "—"}</td>
+                    <td>{f ? `${(f.mean * 100).toFixed(1)}%` : "—"}</td>
+                    <td>{f ? `${(f.win_rate * 100).toFixed(0)}%` : "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
