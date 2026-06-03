@@ -9,6 +9,7 @@ fake.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -23,6 +24,14 @@ from bot_core.types import Signal
 
 from .guards import RiskGuards, evaluate_guards
 from .sizing import size_order
+
+_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def _live_enabled() -> bool:
+    """Live order placement requires an explicit server opt-in (set only after
+    the validation prerequisite in docs/validation.md is met). Default off."""
+    return os.environ.get("BTD_ALLOW_LIVE", "").strip().lower() in _TRUTHY
 
 
 @dataclass
@@ -79,8 +88,12 @@ def execute_signal(
         return skip("signal not triggered")
     if not bot.enabled:
         return skip("bot disabled")
-    if bot.mode != "paper":
-        return skip("live trading disabled (paper-only until validation; see roadmap phase 7)")
+    if bot.mode == "live" and not _live_enabled():
+        return skip(
+            "live trading disabled (set BTD_ALLOW_LIVE=1 after validation; roadmap phase 7)"
+        )
+    if bot.mode not in ("paper", "live"):
+        return skip(f"unknown bot mode {bot.mode!r}")
     if signal.tranche_pct_range is None:
         return skip("no tranche range on signal")
 
@@ -139,11 +152,12 @@ def execute_signal(
     record = repo.record_order(session, bot.id, signal_id, _order_to_payload(order, qty=qty))
     repo.audit(
         session, "order_submitted",
-        f"{bot.name}: paper buy {qty} {broker_symbol} (~${notional:,.0f})",
-        bot_id=bot.id, context={"order_id": order.id, "status": order.status},
+        f"{bot.name}: {bot.mode} buy {qty} {broker_symbol} (~${notional:,.0f})",
+        bot_id=bot.id,
+        context={"order_id": order.id, "status": order.status, "mode": bot.mode},
     )
     return TradeDecision(
         bot_id=bot.id, symbol=sym, action="placed",
-        reason=f"paper buy {broker_symbol}", order_id=record.broker_order_id,
+        reason=f"{bot.mode} buy {broker_symbol}", order_id=record.broker_order_id,
         qty=qty, notional=notional,
     )

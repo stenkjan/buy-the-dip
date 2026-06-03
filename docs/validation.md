@@ -51,3 +51,26 @@ Document the resolution of any mismatch in the fixture file's `notes` column.
 - Before bumping `bot_core.__version__`.
 - Before flipping the bot from `mode = "scheduled"` (alerts) to anything that
   acts on signals (auto-orders, future Phase 4).
+
+## Going live (phase 7) — prerequisite checklist
+
+Live order placement is **refused by the executor unless `BTD_ALLOW_LIVE=1` is
+set on the server**. Set it only after every box below is ticked. Paper trading
+needs none of this — it is the default and always available.
+
+- [ ] TradingView spot-check above passes for both `^NDX` and `^GSPC`
+      (`python -m cli.validate_tv` exits 0).
+- [ ] The strategy has been **paper-traded** (`mode = paper`) for a meaningful
+      window and the `OrderRecord` / `Position` rows look correct after
+      `cli.refresh`.
+- [ ] Per-bot risk guards (`config_json.guards`) are set conservatively
+      (cash floor, daily cap, cooldown, max-% per trade).
+- [ ] Alpaca **live** credentials are configured (`APCA_API_KEY_ID` /
+      `APCA_API_SECRET_KEY`) and the account is funded as intended.
+- [ ] You understand the kill switch: `POST /emergency-stop` (or the "Stop all"
+      button) pauses every bot and cancels open orders.
+
+Then, to enable: set the bot's `mode = live` (Bots tab) **and** set
+`BTD_ALLOW_LIVE=1` in the server environment. Either alone is insufficient —
+the executor checks both. Unset `BTD_ALLOW_LIVE` to instantly fall back to
+refusing live orders without touching any bot config.

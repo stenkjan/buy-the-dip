@@ -81,6 +81,22 @@ def test_live_mode_refused(db_session):
     assert d.action == "skipped" and "live" in d.reason and not broker.placed
 
 
+def test_live_allowed_with_env_optin(db_session, monkeypatch):
+    monkeypatch.setenv("BTD_ALLOW_LIVE", "1")
+    bot = _bot(db_session, mode="live")
+    broker = FakeBroker()
+    d = execute_signal(db_session, bot, _signal(), broker, asset_allocation_pct=0.25)
+    assert d.action == "placed"
+    assert len(broker.placed) == 1
+    from sqlmodel import select
+
+    from bot_core.db.models import AuditLog
+    rows = db_session.exec(
+        select(AuditLog).where(AuditLog.event_type == "order_submitted")
+    ).all()
+    assert rows and rows[0].context_json.get("mode") == "live"
+
+
 def test_dry_run_does_not_place(db_session):
     bot = _bot(db_session)
     broker = FakeBroker()
