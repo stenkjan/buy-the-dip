@@ -84,10 +84,17 @@ By default the dashboard fetches `https://raw.githubusercontent.com/<owner>/<rep
 the static snapshot produced 2× daily by the scheduled GitHub Action. For local
 dev against the FastAPI server set `VITE_SIGNALS_URL=http://localhost:8000/signals`.
 
+Each signal card also renders a **price + RSI chart** (recharts) from
+`history.json` on the same `data` branch — close with both EMA200s, RSI 1D with
+30/70 reference lines, and colored markers on historic Stufe triggers. Charts
+are best-effort: the cards still render if `history.json` is missing. Override
+its location with `VITE_HISTORY_URL`.
+
 ## Architecture: static-JSON dashboard
 
 The scheduled workflow runs `cli.snapshot` after the alert pass and force-pushes
-the resulting `signals.json` to the `data` branch. The deployed dashboard is a
+the resulting `signals.json` (current state) and `history.json` (last ~500 daily
+bars per asset, for the charts) to the `data` branch. The deployed dashboard is a
 static Vite build that fetches that JSON directly from GitHub's raw CDN. This
 keeps the React app fully static (deployable to Vercel/Netlify/GH Pages with no
 serverless function) and avoids running pandas + yfinance on every page load.

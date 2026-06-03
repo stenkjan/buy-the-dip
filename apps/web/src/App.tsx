@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { fetchSignals, type SignalsPayload } from "./api/client";
+import { fetchHistory, fetchSignals, type HistoryPayload, type SignalsPayload } from "./api/client";
 import { SignalCard } from "./components/SignalCard";
 
 export function App() {
   const [payload, setPayload] = useState<SignalsPayload | null>(null);
+  const [history, setHistory] = useState<HistoryPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -11,7 +12,10 @@ export function App() {
     setLoading(true);
     setError(null);
     try {
-      setPayload(await fetchSignals());
+      // History is best-effort and must not block the signal cards.
+      const [signals, hist] = await Promise.all([fetchSignals(), fetchHistory()]);
+      setPayload(signals);
+      setHistory(hist);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -39,7 +43,9 @@ export function App() {
       )}
 
       <section className="grid">
-        {payload?.signals.map((s) => <SignalCard key={s.symbol} signal={s} />)}
+        {payload?.signals.map((s) => (
+          <SignalCard key={s.symbol} signal={s} history={history?.assets[s.symbol]} />
+        ))}
       </section>
 
       <footer>
