@@ -77,3 +77,18 @@ class PositionOut(BaseModel):
     market_value: float
     unrealized_pl: float
     updated_at: datetime
+
+
+class BacktestRequest(BaseModel):
+    asset: str
+    start: str | None = None          # ISO date; defaults to 2005-01-01
+    strict: bool = False              # used only when `config` is omitted
+    config: dict[str, Any] | None = None  # buy_the_dip thresholds (BuyTheDipConfig.from_dict)
+
+
+class BacktestOut(BaseModel):
+    asset: str
+    n_bars: int
+    liberal: bool
+    summary: dict[str, Any]
+    signals: list[dict[str, Any]]

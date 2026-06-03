@@ -112,6 +112,17 @@ def list_orders(session: Session, bot_id: str, *, limit: int = 200) -> list[Orde
     return list(session.exec(stmt).all())
 
 
+_OPEN_ORDER_STATUSES = ("pending", "accepted", "partially_filled")
+
+
+def list_open_orders(session: Session, bot_id: str) -> list[OrderRecord]:
+    stmt = select(OrderRecord).where(
+        OrderRecord.bot_id == bot_id,
+        OrderRecord.status.in_(_OPEN_ORDER_STATUSES),  # type: ignore[attr-defined]
+    )
+    return list(session.exec(stmt).all())
+
+
 def update_bot_config(session: Session, bot_id: str, *, config_json: dict[str, Any]) -> Bot:
     bot = session.get(Bot, bot_id)
     if bot is None:

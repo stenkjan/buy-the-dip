@@ -60,6 +60,7 @@ python -m cli.backtest --asset ^GSPC --strict   # strict thresholds only
 # through Alpaca, gated by per-bot risk guards. Dry-run first:
 python -m cli.trade --dry-run
 python -m cli.trade            # places paper orders (needs APCA_* creds)
+python -m cli.refresh          # poll open orders, update fills + positions
 ```
 
 Live trading is intentionally refused — paper only until the TradingView

@@ -29,26 +29,7 @@ from ._common import snapshot_asset
 def strategy_config_from_bot(bot: Bot) -> BuyTheDipConfig:
     """Build the strategy config from a bot's config_json, falling back to
     BuyTheDipConfig defaults for any unset field."""
-    c = bot.config_json or {}
-    d = BuyTheDipConfig()
-    return BuyTheDipConfig(
-        rsi_threshold_stufe1=float(c.get("rsi_threshold_stufe1", d.rsi_threshold_stufe1)),
-        rsi_threshold_stufe2=float(c.get("rsi_threshold_stufe2", d.rsi_threshold_stufe2)),
-        rsi_threshold_stufe3=float(c.get("rsi_threshold_stufe3", d.rsi_threshold_stufe3)),
-        rsi_threshold_stufe1_liberal=float(
-            c.get("rsi_threshold_stufe1_liberal", d.rsi_threshold_stufe1_liberal)
-        ),
-        rsi_threshold_stufe2_liberal=float(
-            c.get("rsi_threshold_stufe2_liberal", d.rsi_threshold_stufe2_liberal)
-        ),
-        rsi_threshold_stufe3_liberal=float(
-            c.get("rsi_threshold_stufe3_liberal", d.rsi_threshold_stufe3_liberal)
-        ),
-        liberal=bool(c.get("liberal", d.liberal)),
-        macro_reclaim_window_weeks=int(
-            c.get("macro_reclaim_window_weeks", d.macro_reclaim_window_weeks)
-        ),
-    )
+    return BuyTheDipConfig.from_dict(bot.config_json)
 
 
 def evaluate_bot_signal(bot: Bot) -> Signal | None:
