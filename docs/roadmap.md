@@ -48,8 +48,10 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
   `SignalRecord` per asset via `repository.record_signal`, attaching to a
   stable bot per asset (`get_or_create_bot`). Opt-in; the static JSON path is
   untouched and the public scheduled run keeps working without a database.
-- **[next] Threshold/parameter endpoints**: `POST /backtest`,
-  `POST /parameter-sweep`.
+- **[shipped] `POST /backtest`** — admin-gated; replays the strategy for an
+  asset + optional partial threshold `config` over history and returns the
+  triggered signals with forward returns (powers the threshold preview).
+- **[next] `POST /parameter-sweep`** (phase 8 learning loop).
 - The API server stays on Vercel serverless for now — cold start is
   acceptable for low-traffic admin use.
 
@@ -77,8 +79,10 @@ foundation (DB schema, broker adapter) is already in place from Phase 4.
 - **[shipped] Risk guards** in `bot_core.execution.guards`: max-% per trade,
   cool-down between buys, cash-floor, daily trade cap, drawdown circuit breaker
   (configurable per bot via `config_json.guards`).
-- **[next]** Schedule a status-refresh job that polls open orders and updates
-  `OrderRecord` / `Position`.
+- **[shipped] Order-status refresh** — `bot_core.execution.refresh_orders` +
+  `cli.refresh` poll open orders, update `OrderRecord` (status/fill) with an
+  `order_filled` audit, and sync the bot's `Position` from the broker. Runs
+  after a live paper-trade in `paper-trade.yml`.
 
 ## Then: 7 — Live trading (~1 week)
 
