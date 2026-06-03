@@ -122,6 +122,31 @@ def test_cli_main_writes_csv_and_summary(tmp_path):
     assert data["n_months"] == 13
 
 
+def test_cli_main_writes_dashboard_json(tmp_path):
+    prices = [100.0 + 5 * i for i in range(15)]
+    stub = _StubSource(_monthly_bars(prices))
+    with patch("cli.dca._build_source", return_value=stub):
+        rc = main([
+            "--asset", "^NDX",
+            "--start", "2010-01-01",
+            "--monthly", "1000",
+            "--output-dir", str(tmp_path),
+        ])
+    assert rc == 0
+    import json
+    dash = json.loads((tmp_path / "dca-ndx.dashboard.json").read_text())
+    assert dash["schema_version"] == 1
+    assert dash["asset"] == "^NDX"
+    assert len(dash["series"]) == 15
+    first, last = dash["series"][0], dash["series"][-1]
+    assert {"month", "cum_invested", "dca_value", "lump_value"} == first.keys()
+    # cumulative invested grows by `monthly` each step.
+    assert last["cum_invested"] == pytest.approx(15_000)
+    # lump-sum buys all shares at the first (cheapest) bar, so on a rising market
+    # its terminal equity beats the dollar-cost-averaged book.
+    assert last["lump_value"] > last["dca_value"]
+
+
 def test_cli_main_rejects_insufficient_history(tmp_path):
     bars = _monthly_bars([100.0, 105.0, 110.0])  # only 3 bars
     stub = _StubSource(bars)

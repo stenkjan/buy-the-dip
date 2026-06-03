@@ -15,6 +15,7 @@ execution.
 | 4 — DB + broker scaffold | SQLModel tables (`bot`, `signal_record`, `order_record`, `position`, `audit_log`, `parameter_run`), Alembic migrations on Vercel Postgres, `AlpacaBroker` adapter (paper default). Schema is live but not written to yet. |
 | 5a-prep — Historical data | `AlpacaSource` (StockHistoricalDataClient), `^NDX→QQQ` / `^GSPC→SPY` symbol mapping, `cli.dca` backtest CLI with IRR / Sharpe / max-DD / lump-sum benchmark, manual `dca-backtest.yml` workflow. |
 | **5a — Charts in the dashboard** | `cli.snapshot --history-output` publishes `history.json` (last ~500 daily bars: close, EMA200 1D/1W, RSI 1D/1W, per-bar Stufe + trigger flag) to the `data` branch alongside `signals.json`. Each web signal card renders a price panel (close + both EMA200s, colored Stufe-trigger markers) and an RSI panel (RSI 1D with 30/70 reference lines) via recharts. |
+| **5b — DCA results in the dashboard** | `cli.dca` writes `dca-<asset>.dashboard.json` (KPIs + monthly DCA / lump-sum / invested equity series); the manual `dca-backtest.yml` workflow publishes it to the `data` branch under `dca/<asset>.json`. A "DCA backtest" tab in the web app shows per-asset KPIs (invested, final value, return, money-weighted CAGR, max-DD, Sharpe, vs lump-sum) plus a DCA-vs-lump-sum equity chart, with a free-tier disclaimer when `history_truncation_warning` is present. |
 
 ### Dashboard data files (published to the `data` branch)
 
@@ -22,31 +23,14 @@ execution.
 | ---- | -------- | ----- |
 | `signals.json` | `cli.snapshot --output` | `{schema_version, generated_at, signals[]}` — current Stufe/RSI/trigger per asset. |
 | `history.json` | `cli.snapshot --history-output` | `{schema_version, generated_at, assets:{symbol: bar[]}}` — per-bar `timestamp, close, ema200_daily, ema200_weekly, rsi_1d, rsi_1w, stufe, triggered`. |
+| `dca/<asset>.json` | `cli.dca` + `dca-backtest.yml` | KPI aggregates + `series[]` of `{month, cum_invested, dca_value, lump_value}`. Published per manual workflow run. |
 
 The per-bar `triggered` flag in `history.json` is a chart-overlay
 approximation: it tests the daily RSI for Stufe 1/2 and weekly RSI for Stufe 3
 against the live strategy thresholds, ignoring the contextual macro-reclaim
 relaxation. The precise 12H-RSI signal timeline is phase 5c.
 
-## Next: 5b — DCA results on the dashboard (~1 day)
-
-Goal: the DCA backtest results land in the UI instead of staying as an
-Actions artifact.
-
-- Modify `dca-backtest.yml` to push the summary JSON to the `data` branch
-  under `dca/<asset>.json` after the run (same publish pattern used by the
-  scheduled signal check).
-- New web route `/dca` (or a tab inside the main view) showing:
-  - KPIs: total invested, final value, total return %, money-weighted CAGR,
-    max drawdown, Sharpe (annualised).
-  - Two-line chart: DCA equity curve vs lump-sum invested at start.
-  - Free-tier disclaimer when `history_truncation_warning` is present.
-- Optional: a "Recompute" button in the UI that triggers the workflow via
-  the GitHub Actions REST API (`POST /repos/.../actions/workflows/.../dispatches`)
-  using a `repository_dispatch` token stored in `apps/web` as a Vercel
-  env var.
-
-## Then: 5c — Historical signal timeline (~1 day, optional)
+## Next: 5c — Historical signal timeline (~1 day, optional)
 
 Goal: show what the strategy would have flagged historically — directly
 relevant to validating the engine before any autonomous execution. Unlike the

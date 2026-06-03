@@ -90,6 +90,10 @@ Each signal card also renders a **price + RSI chart** (recharts) from
 are best-effort: the cards still render if `history.json` is missing. Override
 its location with `VITE_HISTORY_URL`.
 
+A **DCA backtest** tab shows per-asset dollar-cost-averaging results (KPIs plus
+a DCA-vs-lump-sum equity chart) read from `dca/<asset>.json`, published by the
+manual `dca-backtest` workflow. Override the base path with `VITE_DCA_BASE_URL`.
+
 ## Architecture: static-JSON dashboard
 
 The scheduled workflow runs `cli.snapshot` after the alert pass and force-pushes

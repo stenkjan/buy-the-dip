@@ -70,3 +70,58 @@ export async function fetchHistory(): Promise<HistoryPayload | null> {
     return null;
   }
 }
+
+export interface DcaSeriesPoint {
+  month: string;
+  cum_invested: number;
+  dca_value: number;
+  lump_value: number;
+}
+
+export interface DcaSummary {
+  schema_version: number;
+  generated_at: string;
+  asset: string;
+  alpaca_symbol: string;
+  n_months: number;
+  first_bar: string;
+  last_bar: string;
+  total_invested: number;
+  final_value: number;
+  total_return_pct: number;
+  cagr: number | null;
+  max_drawdown_pct: number;
+  sharpe_annual: number | null;
+  monthly_contribution: number;
+  benchmark_lump_sum: {
+    final_value: number;
+    total_return_pct: number;
+    cagr: number | null;
+  };
+  dca_vs_lump_sum_delta_pct: number;
+  history_truncation_warning?: string;
+  series: DcaSeriesPoint[];
+}
+
+// Per-asset DCA backtest results published by the manual `dca-backtest`
+// workflow to the `data` branch under dca/<safe>.json.
+const DCA_BASE_URL =
+  import.meta.env.VITE_DCA_BASE_URL ??
+  "https://raw.githubusercontent.com/stenkjan/buy-the-dip/data/dca";
+
+// Mirrors the CLI's filename derivation (`^NDX` -> `ndx`).
+export function toSafeSymbol(symbol: string): string {
+  return symbol.replace(/\^/g, "").toLowerCase();
+}
+
+// Best-effort: returns null when no DCA result has been published for the
+// asset yet (the workflow is manual / opt-in).
+export async function fetchDca(symbol: string): Promise<DcaSummary | null> {
+  try {
+    const r = await fetch(`${DCA_BASE_URL}/${toSafeSymbol(symbol)}.json`, { cache: "no-store" });
+    if (!r.ok) return null;
+    return (await r.json()) as DcaSummary;
+  } catch {
+    return null;
+  }
+}

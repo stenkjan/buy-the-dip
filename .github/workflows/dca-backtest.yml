@@ -25,7 +25,7 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write   # publishes the dashboard JSON to the `data` branch
 
 jobs:
   run:
@@ -79,6 +79,44 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Publish dashboard JSON to `data` branch
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          ASSET: ${{ inputs.asset }}
+        run: |
+          set -e
+          safe=$(printf '%s' "$ASSET" | tr 'A-Z' 'a-z' | tr -d '^')
+          src="backtest/dca-${safe}.dashboard.json"
+          if [ ! -f "$src" ]; then
+            echo "no dashboard payload at $src — skipping publish"
+            exit 0
+          fi
+          pub=$(mktemp -d)
+          cp "$src" "$pub/payload.json"
+          cd "$pub"
+          REMOTE="https://x-access-token:$GH_TOKEN@github.com/$REPO.git"
+          if git clone --branch data --depth 1 "$REMOTE" repo 2>/dev/null; then
+            cd repo
+          else
+            git clone --depth 1 "$REMOTE" repo
+            cd repo
+            git checkout --orphan data
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          mkdir -p dca
+          mv ../payload.json "dca/${safe}.json"
+          git config user.name "buy-the-dip-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add "dca/${safe}.json"
+          if git diff --cached --quiet; then
+            echo "no change to dca/${safe}.json"
+            exit 0
+          fi
+          git commit -m "data: dca ${safe} ${{ github.run_id }}"
+          git push origin HEAD:data
+
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v7
@@ -87,5 +125,6 @@ jobs:
           path: |
             backtest/dca-*.csv
             backtest/dca-*.summary.json
+            backtest/dca-*.dashboard.json
           retention-days: 90
           if-no-files-found: warn

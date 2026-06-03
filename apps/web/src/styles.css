@@ -33,7 +33,16 @@ button:disabled { opacity: .5; cursor: progress; }
 .card.is-triggered { border-color: var(--ok); }
 .card--stufe-3.is-triggered { border-color: var(--warn); }
 
+.tabs { display: flex; gap: .5rem; margin-top: 1rem; border-bottom: 1px solid #232c39; }
+.tab { background: transparent; color: var(--muted); border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: .5rem .25rem; font-size: .95rem; }
+.tab.is-active { color: var(--fg); border-bottom-color: var(--accent); }
+
 .chart { margin-top: .9rem; }
 .chart__panel + .chart__panel { margin-top: .25rem; }
+
+.kpis { font-variant-numeric: tabular-nums; }
+.kpis .pos { color: var(--ok); }
+.kpis .neg { color: var(--bad); }
+.disclaimer { margin-top: .6rem; color: var(--warn); }
 
 footer { margin-top: 2rem; color: var(--muted); font-size: .85rem; }
