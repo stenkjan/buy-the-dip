@@ -75,7 +75,20 @@ jobs:
           mv ../history.json history.json
           git config user.name "buy-the-dip-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add signals.json history.json
+          # The data branch is a data-only branch — Vercel must never try to
+          # build it. A vercel.json here disables git deployments for whichever
+          # branch carries it (the project-level disable on main does not apply
+          # to the data branch, which Vercel evaluates from its own commit).
+          printf '{\n  "$schema": "https://openapi.vercel.sh/vercel.json",\n  "git": { "deploymentEnabled": false }\n}\n' > vercel.json
+          # One-time cleanup: drop any stale source tree previously committed
+          # here so nothing is buildable. Preserves the published data files.
+          git ls-files | while IFS= read -r f; do
+            case "$f" in
+              signals.json|history.json|vercel.json|dca/*|history/*) ;;
+              *) git rm -q -f "$f" ;;
+            esac
+          done
+          git add signals.json history.json vercel.json
           if git diff --cached --quiet; then
             echo "no change to data payloads"
             exit 0
