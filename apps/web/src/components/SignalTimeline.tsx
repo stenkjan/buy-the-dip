@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { ResponsiveContainer } from "recharts";
 import type { TimelinePayload, TimelineSignal } from "../api/client";
+import { pctSigned as pct } from "../format";
 
 const STUFE_COLOR: Record<number, string> = {
   1: "#2ecc71",
@@ -19,10 +20,6 @@ const STUFE_COLOR: Record<number, string> = {
 
 interface Point extends TimelineSignal {
   t: number;
-}
-
-function pct(v: number | null | undefined): string {
-  return v == null ? "—" : `${v >= 0 ? "+" : ""}${(v * 100).toFixed(1)}%`;
 }
 
 function TimelineTooltip({ active, payload }: { active?: boolean; payload?: { payload: Point }[] }) {

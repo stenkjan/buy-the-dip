@@ -44,11 +44,23 @@ function TriggerDot({ cx, cy, payload }: DotProps) {
   );
 }
 
+function ChartLegend() {
+  return (
+    <div className="chart-legend">
+      <span><i className="lg-line" style={{ background: "#4ea1ff" }} /> Close</span>
+      <span><i className="lg-line" style={{ background: "#e74c3c" }} /> EMA200</span>
+      <span><i className="lg-line" style={{ background: "#f1c40f" }} /> RSI&nbsp;1D</span>
+      <span><i className="lg-dot" style={{ background: STUFE_COLOR[1] }} /> trigger (by Stufe)</span>
+    </div>
+  );
+}
+
 export function AssetChart({ bars }: { bars: HistoryBar[] }) {
   if (!bars.length) return null;
 
   return (
     <div className="chart">
+      <ChartLegend />
       <div className="chart__panel">
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={bars} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
