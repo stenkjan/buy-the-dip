@@ -127,16 +127,23 @@ stays disabled (503).
 ### Running the admin API locally
 
 The admin key is whatever you choose — set it as `API_KEY` on the server and
-type the same value into the UI. To test the Bots/Tuning tabs locally:
+type the same value into the UI. The easiest path is the dev helper, which
+generates a random key, prints it, and starts the API:
 
 ```bash
-# API: pick any admin key; allow the web dev origin. SQLite tables are created
-# automatically on startup (Postgres uses Alembic migrations instead).
+./scripts/dev-api.sh
+# → prints "Admin API key: <random>" — paste that into the Bots tab.
+# Web (separate terminal): cd apps/web && npm install && npm run dev
+```
+
+Or do it by hand (SQLite tables are created automatically on startup; Postgres
+uses Alembic migrations instead):
+
+```bash
 API_KEY=letmein API_CORS_ORIGINS=http://localhost:5173 \
   python -m uvicorn apps.api.main:app --port 8000 --reload
 
-# Web (separate terminal): http://localhost:5173 → Bots tab → enter "letmein"
-cd apps/web && npm install && npm run dev
+cd apps/web && npm install && npm run dev   # http://localhost:5173 → Bots tab → "letmein"
 ```
 
 ## Architecture: static-JSON dashboard
