@@ -13,15 +13,17 @@ import { BotsPanel } from "./components/BotsPanel";
 import { DcaCard } from "./components/DcaCard";
 import { SignalCard } from "./components/SignalCard";
 import { SignalTimeline } from "./components/SignalTimeline";
+import { SweepPanel } from "./components/SweepPanel";
 import { relativeTime } from "./format";
 
-type Tab = "signals" | "dca" | "timeline" | "bots";
+type Tab = "signals" | "dca" | "timeline" | "bots" | "tuning";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "signals", label: "Signals" },
   { id: "dca", label: "DCA backtest" },
   { id: "timeline", label: "Signal timeline" },
   { id: "bots", label: "Bots" },
+  { id: "tuning", label: "Tuning" },
 ];
 
 export function App() {
@@ -149,6 +151,8 @@ export function App() {
       )}
 
       {!initialLoading && tab === "bots" && <BotsPanel />}
+
+      {!initialLoading && tab === "tuning" && <SweepPanel />}
 
       <footer>
         <p>Educational tool. Not investment advice. No buy/sell recommendations.</p>
