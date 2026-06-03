@@ -1,0 +1,56 @@
+name: paper-trade
+
+# Manual, opt-in paper trading. Defaults to a dry run (no orders placed).
+# Requires repo secrets: APCA_API_KEY_ID, APCA_API_SECRET_KEY (paper account)
+# and a Postgres secret (POSTGRES_URL / POSTGRES_URL_NON_POOLING) holding the
+# bot definitions; without the DB secret it runs against a throwaway SQLite
+# file with no bots and does nothing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Evaluate + size + run guards but place no orders"
+        type: boolean
+        default: true
+      bot:
+        description: "Only trade this bot id (blank = all enabled)"
+        default: ""
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-trade
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -e .
+
+      - name: Run paper trade
+        env:
+          APCA_API_KEY_ID: ${{ secrets.APCA_API_KEY_ID }}
+          APCA_API_SECRET_KEY: ${{ secrets.APCA_API_SECRET_KEY }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+          DATA_API_KEY: ${{ secrets.DATA_API_KEY }}
+        run: |
+          set -euo pipefail
+          dry=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            dry="--dry-run"
+          fi
+          bot_arg=""
+          if [ -n "${{ inputs.bot }}" ]; then
+            bot_arg="--bot ${{ inputs.bot }}"
+          fi
+          python -m cli.trade $dry $bot_arg | tee "$GITHUB_STEP_SUMMARY"
