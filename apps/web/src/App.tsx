@@ -14,6 +14,7 @@ import { DcaCard } from "./components/DcaCard";
 import { SignalCard } from "./components/SignalCard";
 import { SignalTimeline } from "./components/SignalTimeline";
 import { SweepPanel } from "./components/SweepPanel";
+import { TabIntro } from "./components/TabIntro";
 import { relativeTime } from "./format";
 
 type Tab = "signals" | "dca" | "timeline" | "bots" | "tuning";
@@ -108,6 +109,8 @@ export function App() {
           </span>
         </p>
       )}
+
+      {!initialLoading && <TabIntro tab={tab} />}
 
       {initialLoading && (
         <section className="grid" aria-busy="true">
