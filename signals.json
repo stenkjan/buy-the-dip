@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-09T18:53:58.846443+00:00",
+  "generated_at": "2026-06-10T07:42:32.628289+00:00",
   "signals": [
     {
       "symbol": "^NDX",
       "timestamp": "2026-06-09T04:00:00+00:00",
       "triggered": false,
-      "stufe": 1,
-      "rsi_value": 48.6999855319606,
-      "rsi_threshold": 30.0,
-      "price": 28980.53125,
+      "stufe": 3,
+      "rsi_value": 67.06764367335757,
+      "rsi_threshold": 32.0,
+      "price": null,
       "tranche_pct_range": [
-        10.0,
-        20.0
+        40.0,
+        60.0
       ],
       "extras": {
         "macro_reclaim": false
@@ -22,13 +22,13 @@
       "symbol": "^GSPC",
       "timestamp": "2026-06-09T04:00:00+00:00",
       "triggered": false,
-      "stufe": 1,
-      "rsi_value": 48.25723944056449,
-      "rsi_threshold": 30.0,
-      "price": 7373.72998046875,
+      "stufe": 3,
+      "rsi_value": 64.29111194307978,
+      "rsi_threshold": 32.0,
+      "price": null,
       "tranche_pct_range": [
-        10.0,
-        20.0
+        40.0,
+        60.0
       ],
       "extras": {
         "macro_reclaim": false
