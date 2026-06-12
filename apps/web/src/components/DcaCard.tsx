@@ -63,7 +63,7 @@ export function DcaCard({ dca }: { dca: DcaSummary }) {
               <Tooltip
                 contentStyle={{ background: "#141a22", border: "1px solid #232c39" }}
                 labelFormatter={(v) => shortDate(v as string)}
-                formatter={(value: number, name: string) => [usd(value), name]}
+                formatter={(value, name) => [usd(typeof value === "number" ? value : null), name]}
               />
               <Line
                 type="monotone"

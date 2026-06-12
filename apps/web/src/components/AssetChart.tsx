@@ -79,7 +79,10 @@ export function AssetChart({ bars }: { bars: HistoryBar[] }) {
             <Tooltip
               contentStyle={{ background: "#141a22", border: "1px solid #232c39" }}
               labelFormatter={(v) => new Date(v as string).toUTCString()}
-              formatter={(value: number, name: string) => [value?.toFixed(2), name]}
+              formatter={(value, name) => [
+                typeof value === "number" ? value.toFixed(2) : String(value ?? ""),
+                name,
+              ]}
             />
             <Line
               type="monotone"
@@ -133,7 +136,10 @@ export function AssetChart({ bars }: { bars: HistoryBar[] }) {
             <Tooltip
               contentStyle={{ background: "#141a22", border: "1px solid #232c39" }}
               labelFormatter={(v) => new Date(v as string).toUTCString()}
-              formatter={(value: number, name: string) => [value?.toFixed(2), name]}
+              formatter={(value, name) => [
+                typeof value === "number" ? value.toFixed(2) : String(value ?? ""),
+                name,
+              ]}
             />
             <ReferenceLine y={70} stroke="#8b95a5" strokeDasharray="4 4" />
             <ReferenceLine y={30} stroke="#2ecc71" strokeDasharray="4 4" />
