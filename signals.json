@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-06T22:54:40.136682+00:00",
+  "generated_at": "2026-11-07T12:44:25.988682+00:00",
   "signals": [
     {
       "symbol": "^NDX",
       "timestamp": "2026-11-06T05:00:00+00:00",
       "triggered": false,
       "stufe": 2,
-      "rsi_value": 31.391090426363235,
+      "rsi_value": 31.391068064542694,
       "rsi_threshold": 30.5,
-      "price": 26989.9921875,
+      "price": 26989.990234375,
       "tranche_pct_range": [
         20.0,
         40.0
